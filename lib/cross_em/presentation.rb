@@ -14,5 +14,5 @@ end
 
 %w[
   units rect color palette appearance settings look layout board_view copy sheet input clock shot_schedule
-  script play
+  script sounds play
 ].each { require_relative "presentation/#{it}" }

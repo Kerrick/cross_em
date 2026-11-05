@@ -35,8 +35,10 @@ module CrossEm
         game.subscribe { changed(it) }
       end
 
-      def resize(width:, height:, units:, safe: nil)
-        @width, @height, @safe, @units = width, height, safe, units
+      # The window's size and safe area in pixels, its Units, and the
+      # +measure+ for sheets made at that density.
+      def resize(width:, height:, units:, safe: nil, measure: @measure)
+        @width, @height, @safe, @units, @measure = width, height, safe, units, measure
         @layouts.clear
         @sheet_layouts.clear
         @sheets.map! { it.with(scroll: 0) }
@@ -226,12 +228,12 @@ module CrossEm
         @host.sound(:copied)
       end
 
-      def open(kind)
+      def open(kind, sound: true)
         @armed_at = nil
         return if sheet&.kind == kind
 
         @sheets << Sheet.open(kind)
-        @host.sound(:button)
+        @host.sound(:button) if sound
       end
 
       # Closes the sheet on top. Closing How to play counts as having read
