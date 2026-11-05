@@ -66,7 +66,8 @@ module CrossEm
 
       # The wordmark, the number and the tag on one line if they fit;
       # else the number alone, in the wordmark's slab, with the tag beside
-      # it on two lines; else the number inside the tag.
+      # it on two lines; else the number inside the tag; else the tag
+      # alone.
       def tagged(rect, number, (label, detail))
         palette = @pen.palette
         sizes = Presentation::Look::SIZES
@@ -87,7 +88,10 @@ module CrossEm
           @pen.text(number, slab, x, @pen.middle_top(slab, rect.center_y).round, palette.ink)
           return pill(x + slab.width(number) + @pen.px(10), rect.center_y, stacked, palette)
         end
-        pill(x, rect.center_y, [["#{number} · #{label}", bold], [detail, small]], palette)
+        numbered = "#{number} · #{label}"
+        return pill(x, rect.center_y, [[numbered, bold], [detail, small]], palette) if pill_width(bold, numbered) <= rect.width
+
+        pill(x, rect.center_y, stacked, palette)
       end
 
       def pill_width(font, *lines) = lines.map { font.width(it) }.max + @pen.px(16)
