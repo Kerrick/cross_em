@@ -1,0 +1,6 @@
+/.bundle/
+/vendor/bundle/
+/dist/
+/tmp/
+.DS_Store
+/vendor/cache/Fledge-*/
