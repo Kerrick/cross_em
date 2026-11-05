@@ -19,6 +19,9 @@ module CrossEm
     #   giveup             gives up, confirming at once
     #   arm                presses Give up once, so it asks to confirm
     #   help  credits      open those sheets; close closes one
+    #   archive            opens Past puzzles
+    #   day:1700           opens that puzzle as Past puzzles would
+    #   again  today       play the day again for practice; back to today
     #   scroll:400         scrolls a sheet, or pans the board, by points
     #   copy               copies the result
     #   calm               switches calm motion on or off

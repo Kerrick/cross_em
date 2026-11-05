@@ -43,6 +43,7 @@ module PresentationTest
     def copy(text) = @clipboard && (@copied << text)
     def settings_changed(settings) = @settings = settings
     def next_day = @next_days += 1
+    def listen(game) = game
     def dark? = @dark
     def system_theme = @system_theme
     def read(path) = "text of #{path}\n\nsecond paragraph"

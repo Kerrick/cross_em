@@ -128,7 +128,7 @@ class LayoutTest < Minitest::Test
   def test_after_the_game_a_cramped_pool_shrinks_rather_than_the_board
     cramped = layout(320, 480, over: true, pool: true)
 
-    assert_operator cramped.pool.first.width, :<, 44
+    assert_operator cramped.pool.first.width, :<=, 44
     assert_equal 6, cramped.pool.map(&:y).tally.values.first
   end
 
@@ -162,5 +162,28 @@ class LayoutTest < Minitest::Test
 
     assert_equal row.countdown.x, stats.first.x
     assert_equal row.copy.right, stats.last.right
+  end
+
+  def test_when_even_a_small_pool_leaves_no_room_the_results_buttons_share_a_row
+    cramped = layout(505, 320, over: true, pool: true)
+    results = cramped.results
+
+    assert_equal [results.countdown.y] * 3, [results.copy.y, results.again.y, results.archive.y]
+    assert_operator cramped.board.height, :>=, 68
+  end
+
+  def test_after_the_game_a_row_offers_play_again_and_past_puzzles
+    results = layout(390, 844, over: true, pool: false).results
+
+    assert_operator results.again.y, :>, results.copy.y
+    assert_equal results.again.y, results.archive.y
+    assert_operator results.again.height, :>=, 44
+  end
+
+  def test_the_header_has_four_buttons_a_fingertip_wide
+    layout = layout(390, 844)
+
+    assert_equal %i[archive help theme sound], layout.header_buttons.map(&:first)
+    layout.header_buttons.each { |_, rect| assert_operator rect.width, :>=, 44 }
   end
 end

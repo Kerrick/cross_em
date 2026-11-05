@@ -22,12 +22,15 @@ module CrossEm
       def self.example(tiles, target) = new(kind: :example, tiles:, target:)
     end
 
-    # A sheet over the Play screen: How to play, or Credits, and how far
-    # its body is scrolled, in pixels.
-    class Sheet < Data.define(:kind, :scroll)
-      def self.open(kind) = new(kind:, scroll: 0)
+    # A sheet over the Play screen: How to play, Credits or Past
+    # puzzles, how far its body is scrolled, in pixels, and, in Past
+    # puzzles, the day the keyboard is on (+focus+, a puzzle number).
+    class Sheet < Data.define(:kind, :scroll, :focus)
+      TITLES = {help: "How to play", credits: "Credits", archive: "Past puzzles"}.freeze
 
-      def title = kind == :help ? "How to play" : "Credits"
+      def self.open(kind) = new(kind:, scroll: 0, focus: nil)
+
+      def title = TITLES.fetch(kind)
 
       def scrolled(by, layout) = with(scroll: (scroll + by).clamp(0, layout.most_scroll))
     end

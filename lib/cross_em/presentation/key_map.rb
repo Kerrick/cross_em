@@ -20,6 +20,9 @@ module CrossEm
     #   1-9           while choosing: place it there
     #   ?             How to play
     #   Ctrl/Cmd+C    copies the result once the game is over
+    #
+    # In Past puzzles, Up and Down move from day to day, Page Up, Page
+    # Down, Home and End further, and Enter opens the day.
     module KeyMap
       module_function
 
@@ -48,9 +51,24 @@ module CrossEm
       end
 
       def sheet_key(play, key)
+        return archive_key(play, key) if play.sheet.kind == :archive
+
         case key
         when :escape, :return, :kpenter then play.close_sheet
         when :up, :pageup, :down, :pagedown, :home, :end then scroll(play, key)
+        end
+      end
+
+      # Past puzzles: the arrows move from day to day, Page Up and Page
+      # Down a page, Home and End to the newest and the oldest, and Enter
+      # opens the day.
+      def archive_key(play, key)
+        case key
+        when :escape then play.close_sheet
+        when :return, :kpenter then play.open_focus
+        when :up, :down then play.move_focus(key == :up ? -1 : 1)
+        when :pageup, :pagedown then play.move_focus(key == :pageup ? -play.focus_page : play.focus_page)
+        when :home, :end then play.move_focus(key)
         end
       end
 

@@ -87,7 +87,9 @@ module CrossEm
         @play.layout.header_buttons.each { |name, rect| return [:button, name] if rect.contains?(x, y) }
         @play.layout.controls&.each { |name, rect| return [:button, name] if rect.contains?(x, y) }
         if (results = @play.layout.results)
-          return [:button, :copy] if results.copy.contains?(x, y)
+          return [:button, @play.primary] if results.copy.contains?(x, y)
+          return [:button, :again] if results.again.contains?(x, y)
+          return [:button, :archive] if results.archive.contains?(x, y)
           return [:button, :next] if results.countdown.contains?(x, y) && @play.next_day
         end
         @play.layout.pool.each_with_index { |rect, i| return [:slot, i] if rect.contains?(x, y) }
@@ -137,8 +139,9 @@ module CrossEm
 
       def sheet_control(id)
         case id
-        when :close then @play.close_sheet
-        when :credits then @play.open(:credits)
+        in [:day, number] then @play.open_day(number)
+        in :close then @play.close_sheet
+        in :credits then @play.open(:credits)
         else @play.toggle(id)
         end
       end

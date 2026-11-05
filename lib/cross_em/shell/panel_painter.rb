@@ -124,10 +124,30 @@ module CrossEm
         @pen.text(status.text, heading, rect.x + ((rect.width - heading.width(status.text)) / 2.0), top, title_color)
         @pen.text(status.detail, sub, rect.x + ((rect.width - sub.width(status.detail)) / 2.0),
                   top + heading.height + gap, palette.ink_muted)
-        stats(play.stats, results.stats)
+        if (numbers = play.stats) then stats(numbers, results.stats)
+        else note(play, results.stats)
+        end
         countdown(play, results.countdown)
-        @buttons.draw(results.copy, play.label(:copy), kind: play.next_day ? :plain : :primary,
-                                                      pressed: pressed?(play, :copy))
+        primary = play.primary
+        @buttons.draw(results.copy, play.label(primary), kind: play.next_day ? :plain : :primary,
+                                                         pressed: pressed?(play, primary))
+        %i[again archive].each do |name|
+          @buttons.draw(results.public_send(name), play.label(name), pressed: pressed?(play, name))
+        end
+      end
+
+      # Where the statistics go for a game that doesn't count: what it
+      # is, so a practice result is never mistaken for the day's.
+      def note(play, rects)
+        rect = rects.first.with(width: rects.last.right - rects.first.x)
+        text = play.review? ? Presentation::Copy.review_note(play.game.day) : Presentation::Copy::PRACTICE_NOTE
+        font = @pen.type.reason
+        _, lines = font.wrap(text, rect.width)
+        line = (font.height * 1.15).round
+        top = rect.y + ((rect.height - (lines.size * line)) / 2)
+        lines.each_with_index do |part, i|
+          @pen.text(part, font, rect.x + ((rect.width - font.width(part)) / 2.0), top + (i * line), @pen.palette.ink_muted)
+        end
       end
 
       def stats(stats, rects)

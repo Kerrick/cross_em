@@ -26,7 +26,9 @@ module CrossEm
         link(layout.link, play) if layout.link
         @pen.fill(layout.title.with(y: layout.title.bottom - 1, height: 1), palette.rule)
 
-        body(play, layout, sheet.scroll)
+        if layout.is_a?(Presentation::ArchiveLayout) then archive(play, layout, sheet)
+        else body(play, layout, sheet.scroll)
+        end
         return unless layout.scrolls?
 
         fades(layout, sheet.scroll)
@@ -82,6 +84,103 @@ module CrossEm
 
             control.kind == :toggle ? toggle(rect, control, play.settings) : button(rect, control, play)
           end
+        end
+      end
+
+      # Past puzzles: only the rows in view, each month's heading pinned
+      # to the top while its days scroll under it, until the next month's
+      # pushes it away.
+      def archive(play, layout, sheet)
+        scroll = sheet.scroll
+        rows = layout.visible(scroll)
+        return if rows.empty?
+
+        @pen.clip(layout.body) do
+          rows.each do |row|
+            rect = layout.row_rect(row, scroll)
+            row.month? ? month(rect, row) : day(play, rect, row, sheet.focus == row.number)
+          end
+          pinned(layout, rows, scroll)
+        end
+      end
+
+      def pinned(layout, rows, scroll)
+        heading = layout.list.month_of(rows.first) or return
+        return if heading.y >= scroll
+
+        top = layout.body.y
+        following = rows.find { it.month? && it.y > heading.y }
+        top = [top, layout.row_rect(following, scroll).y - heading.height].min if following
+        month(Presentation::Rect.new(x: layout.body.x, y: top, width: layout.body.width, height: heading.height), heading)
+      end
+
+      def month(rect, row)
+        palette = @pen.palette
+        @pen.fill(rect, palette.card)
+        font = @pen.type.style(:heading)
+        pad = @pen.px(12)
+        @pen.text(Presentation::Copy.month(row.date), font, rect.x + pad, rect.bottom - font.height - @pen.px(6), palette.ink)
+        @pen.fill(rect.with(y: rect.bottom - 1, height: 1).inset(pad, 0), palette.rule)
+      end
+
+      # A day: its number and date at the left, and at the right how the
+      # player did, in words with a glyph of its own, never by color
+      # alone.
+      def day(play, rect, row, focused)
+        palette = @pen.palette
+        pad = @pen.px(12)
+        pressed = play.gesture&.target == [:sheet, :body] && play.gesture.tap? && rect.contains?(play.gesture.x, play.gesture.y)
+        @pen.fill(rect.inset(@pen.px(2)), palette.page_shade, radius: @pen.px(8)) if pressed
+        title = @pen.type.style(:toggle)
+        small = @pen.type.style(:small)
+        top = rect.y + ((rect.height - title.height - small.height) / 2)
+        today = row.number == play.archive_list.today.number
+        date = Presentation::Copy.date(row.date)
+        @pen.text(Presentation::Copy.number(row.day), title, rect.x + pad, top, palette.ink)
+        @pen.text(today ? "Today · #{date}" : date, small, rect.x + pad, top + title.height, palette.ink_muted)
+
+        record = row.record
+        word, detail = Presentation::Copy.day_status(row.status, good: row.status == :lost ? play.good_letters(record) : nil,
+                                                                 placed: record&.board&.size)
+        body = @pen.type.style(:body)
+        right = rect.right - pad
+        lines = [[word, body, palette.ink], (detail && [detail, small, palette.ink_muted])].compact
+        total = lines.sum { it[1].height }
+        y = rect.y + ((rect.height - total) / 2)
+        width = lines.map { |text, font, _| font.width(text) }.max
+        lines.each do |text, font, color|
+          @pen.text(text, font, right - font.width(text), y, color)
+          y += font.height
+        end
+        size = @pen.px(20)
+        glyph(row.status, right - width - @pen.px(10) - (size / 2.0), rect.center_y, size / 2.0)
+        @pen.fill(rect.with(y: rect.bottom - 1, height: 1).inset(pad, 0), palette.rule)
+        @pen.outline(rect.inset(@pen.px(2)), palette.ink, width: @pen.stroke(2), radius: @pen.px(8)) if focused
+      end
+
+      # Solved: a filled disc with a tick. Game over: a ring with a cross.
+      # In progress: a ring half filled. Not played: a faint ring with a
+      # dash.
+      def glyph(status, cx, cy, r)
+        palette = @pen.palette
+        width = @pen.stroke(1.5)
+        case status
+        when :won
+          @pen.circle(:fill, palette.won, cx, cy, r)
+          @pen.line(palette.page, @pen.stroke(2), cx - (r * 0.45), cy + (r * 0.02), cx - (r * 0.1), cy + (r * 0.38),
+                    cx + (r * 0.5), cy - (r * 0.35))
+        when :lost
+          @pen.circle(:line, palette.ink_muted, cx, cy, r - (width / 2.0), width:)
+          k = r * 0.38
+          @pen.line(palette.ink_muted, width, cx - k, cy - k, cx + k, cy + k)
+          @pen.line(palette.ink_muted, width, cx - k, cy + k, cx + k, cy - k)
+        when :playing
+          @pen.circle(:line, palette.target, cx, cy, r - (width / 2.0), width:)
+          @pen.color(palette.target)
+          ::Lota::Graphics.arc(:fill, :pie, cx, cy, r - width, Math::PI / 2, Math::PI * 1.5, 24)
+        else
+          @pen.circle(:line, palette.rule, cx, cy, r - (width / 2.0), width:)
+          @pen.line(palette.ink_muted, width, cx - (r * 0.35), cy, cx + (r * 0.35), cy)
         end
       end
 

@@ -118,7 +118,16 @@ module CrossEm
       # Today's puzzle, once the finished one's clock has run out, without
       # starting the game again.
       def next_day
-        @play.game = open_game(@clock.today)
+        @play.official = open_game(@clock.today)
+      end
+
+      # Sounds +game+'s events: the official game's, and a practice
+      # game's, which Play opens itself.
+      def listen(game)
+        game.subscribe do |event|
+          delay = @play&.event_delay.to_f
+          Presentation::Sounds.for(event, game).each { |cue| @cues << [@elapsed + delay + cue.delay, cue] }
+        end
       end
 
       private
@@ -132,13 +141,7 @@ module CrossEm
         due.each { |_, cue| sound(cue.name, pitch: cue.pitch) }
       end
 
-      def open_game(day)
-        game = @session.open(day)
-        game.subscribe do |event|
-          delay = @play&.event_delay.to_f
-          Presentation::Sounds.for(event, game).each { |cue| @cues << [@elapsed + delay + cue.delay, cue] }
-        end
-      end
+      def open_game(day) = listen(@session.open(day))
 
       # The records (Archive.open keeps a damaged file aside and begins a
       # fresh one, so the game always opens and saves).
@@ -230,7 +233,10 @@ module CrossEm
         when :shuffle, :reset then @play.press_button(step.name)
         when :giveup then @play.give_up(confirmed: true)
         when :arm then @play.press_button(:give_up)
-        when :help, :credits then @play.open(step.name)
+        when :help, :credits, :archive then @play.open(step.name)
+        when :again then @play.play_again
+        when :today then @play.back_to_today
+        when :day then @play.open_day(Integer(args.fetch(0)))
         when :close then @play.close_sheet
         when :copy then @play.copy
         when :calm then @play.toggle(:calm)

@@ -92,5 +92,60 @@ module CrossEm
         index if index.between?(0, @days.size - 1)
       end
     end
+
+    # Where Past puzzles' parts go: a card as tall as the safe area
+    # allows, its title and close button, and the body the list scrolls
+    # in. It answers what a SheetLayout does, so a press, a drag and a
+    # wheel work on it as on any sheet; a tap on a day is a control whose
+    # id is [:day, number].
+    class ArchiveLayout < Data.define(:card, :title, :close, :link, :body, :list)
+      M = Look::METRICS
+
+      def self.build(list:, safe:, units:)
+        margin = units.px(M.margin)
+        width = [safe.width - (2 * margin), units.px(M.sheet_max)].min
+        height = safe.height - (2 * margin)
+        card = Rect.new(x: safe.x + ((safe.width - width) / 2), y: safe.y + margin, width:, height:)
+        pad = units.px(width < units.px(420) ? 20 : 28)
+        title_height = units.px(64)
+        title = Rect.new(x: card.x + pad, y: card.y, width: card.width - (2 * pad), height: title_height)
+        touch = units.px(M.touch)
+        close = Rect.new(x: card.right - units.px(8) - touch, y: card.y + ((title_height - touch) / 2), width: touch,
+                         height: touch)
+        body = Rect.new(x: card.x + units.px(8), y: title.bottom, width: card.width - (2 * units.px(8)),
+                        height: card.bottom - title.bottom - units.px(8))
+        new(card:, title:, close:, link: nil, body:, list:)
+      end
+
+      def content_height = list.height
+      def most_scroll = [content_height - body.height, 0].max
+      def scrolls? = most_scroll.positive?
+
+      # The day under (+px+, +py+) with the list scrolled by +scroll+.
+      def control_at(px, py, scroll)
+        return unless body.contains?(px, py)
+
+        row = list.row_at(py - body.y + scroll)
+        SheetLayout::Control.new(id: [:day, row.number], kind: :day, rect: row_rect(row, 0), text: nil, detail: nil,
+                                 primary: false) if row&.day?
+      end
+
+      # Where +row+ is drawn on the screen with the list scrolled by
+      # +scroll+.
+      def row_rect(row, scroll) = Rect.new(x: body.x, y: body.y + row.y - scroll, width: body.width, height: row.height)
+
+      # The rows in view with the list scrolled by +scroll+.
+      def visible(scroll) = list.visible(scroll, body.height)
+
+      # The scroll that brings +row+ wholly into view, below the month's
+      # heading pinned at the top, moving as little as it can.
+      def reveal(row, scroll)
+        heading = list.rows.first.height
+        top = row.y - heading
+        bottom = row.bottom - body.height
+        scroll.clamp(bottom, [top, bottom].max).clamp(0, most_scroll)
+      end
+    end
   end
 end
+

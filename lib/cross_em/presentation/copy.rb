@@ -19,6 +19,15 @@ module CrossEm
       COPIED = "Copied"
       COPY_FAILED = "Couldn't copy"
       NEXT_PUZZLE = "Next puzzle in"
+      PLAY_AGAIN = "Play again"
+      PLAY_IT_AGAIN = "Play it again"
+      ARCHIVE = "Past puzzles"
+      BACK_TO_TODAY = "Back to today"
+      PRACTICE = "Practice"
+      PRACTICE_DETAIL = "doesn't count"
+      PRACTICE_NOTE = "A practice game. It isn't saved or counted."
+      REVIEW = "Your board"
+      REVIEW_DETAIL = "read-only"
       WON = "Solved!"
       LOST = "Game over"
       STAT_LABELS = ["Played", "Win %", "Streak", "Best streak"].freeze
@@ -40,6 +49,25 @@ module CrossEm
       module_function
 
       def number(day) = "No. #{day.number}"
+
+      # A day's date as the archive lists it: "Thu 5 Nov 2026".
+      def date(date) = date.strftime("%a %-d %b %Y")
+      def month(date) = date.strftime("%B %Y")
+
+      # Under the heading when looking back at a finished board.
+      def review_note(day) = "Your board from #{date(day.date)}."
+
+      # How the player did on a day, for the archive: a word, and a
+      # detail (+good+ letters for a finished game, +placed+ for one in
+      # progress).
+      def day_status(status, good: nil, placed: nil)
+        case status
+        when :won then ["Solved", "All #{Rules::LETTER_COUNT} crossed"]
+        when :lost then ["Game over", "#{good} of #{Rules::LETTER_COUNT} crossed"]
+        when :playing then ["In progress", "#{letters(placed.to_i)} placed"]
+        else ["Not played", nil]
+        end
+      end
       def play_number(day) = "Play No. #{day.number}"
 
       def letters(count) = count == 1 ? "1 letter" : "#{count} letters"

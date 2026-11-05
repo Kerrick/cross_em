@@ -374,11 +374,155 @@ class PlayTest < Minitest::Test
     play = play()
     play.press(Pointer.new(phase: :pressed, id: 1, x: 5.0, y: 300.0))
     play.pick(0)
-    play.game = game(day: Day.numbered(1721))
+    play.official = game(day: Day.numbered(1721))
 
     assert_nil play.gesture
     tap_rect(play, play.layout.pool[3])
 
     assert_equal 3, play.game.selected, "a tap is heard at once"
+  end
+
+  def finish_official(play)
+    play.give_up(confirmed: true)
+    play.game
+  end
+
+  def test_play_again_starts_practice_of_the_same_day_and_never_saves_it
+    play = play(game: @session.open(Day.numbered(1720)))
+    official = play.official
+    official.place_letter(0, Position::ORIGIN)
+    finish_official(play)
+    saved = @session.archive[official.day.number]
+    tap_rect(play, play.layout.results.again)
+
+    assert_predicate play, :practice?
+    assert_equal official.day, play.game.day
+    assert_predicate play.game.board, :empty?
+    assert_equal 12, play.game.pool.unused_count
+    type(play, "cat")
+    play.key(:return)
+    play.give_up(confirmed: true)
+
+    assert_same saved, @session.archive[official.day.number], "the record is untouched"
+    assert_equal 1, @session.stats(official.day).played
+    assert_same official, play.official
+    assert_equal 1, official.board.size
+  end
+
+  def test_practice_shows_no_statistics_and_no_share_button
+    play = play()
+    finish_official(play)
+    play.play_again
+    play.give_up(confirmed: true)
+
+    assert_nil play.stats
+    assert_equal :today, play.primary
+    assert_equal Copy::BACK_TO_TODAY, play.label(:today)
+    play.copy
+    play.key(:c, command: true)
+
+    assert_empty @host.copied, "a practice result is never shared as a real one"
+  end
+
+  def test_back_to_today_returns_to_the_official_game_as_it_was
+    play = play()
+    official = finish_official(play)
+    play.play_again
+    play.give_up(confirmed: true)
+    tap_rect(play, play.layout.results.copy) # in practice, "Back to today"
+
+    assert_equal :official, play.mode
+    assert_same official, play.game
+  end
+
+  def test_the_header_opens_past_puzzles_listing_today_first
+    play = play(settings: Settings.default.with(instructions_seen: true))
+    tap_rect(play, play.layout.archive_button)
+
+    assert_equal :archive, play.sheet.kind
+    assert_equal play.official.day.number, play.sheet_layout.list.days.first.number
+  end
+
+  def past_day_finished(number, status: :lost)
+    day = Day.numbered(number)
+    @session.archive.save(Record.new(day:, pool: Pool.new(slots: day.letters.drop(1) + [nil]),
+                                     board: Board.new(cells: {Position::ORIGIN => day.letters.first}), status:))
+  end
+
+  def test_a_finished_past_day_opens_its_board_to_look_at_and_play_it_again
+    play = play(clock: Clock.pretending(Day.numbered(1720).date))
+    past_day_finished(1700)
+    saved = @session.archive[1700]
+    play.open(:archive)
+    play.open_day(1700)
+
+    assert_predicate play, :review?
+    refute_predicate play, :sheet?
+    assert_predicate play.game, :lost?
+    assert_equal saved.board, play.game.board
+    assert_equal Copy::PLAY_IT_AGAIN, play.label(:again)
+    play.press_button(:again)
+
+    assert_predicate play, :practice?
+    assert_equal 1700, play.game.day.number
+    assert_predicate play.game.board, :empty?
+    assert_same saved, @session.archive[1700]
+  end
+
+  def test_a_past_day_never_finished_opens_as_practice_and_stays_unplayed
+    play = play(clock: Clock.pretending(Day.numbered(1720).date))
+    play.open_day(1500)
+
+    assert_predicate play, :practice?
+    play.give_up(confirmed: true)
+
+    assert_nil @session.archive[1500]
+  end
+
+  def test_today_in_past_puzzles_is_the_official_game
+    play = play(game: game(day: Day.numbered(1720)), clock: Clock.pretending(Day.numbered(1720).date))
+    official = play.official
+    play.open_day(1500)
+    play.open(:archive)
+    play.open_day(1720)
+
+    assert_same official, play.game
+    refute_predicate play, :sheet?
+  end
+
+  def test_the_keyboard_walks_past_puzzles_and_opens_a_day
+    play = play(clock: Clock.pretending(Day.numbered(1720).date))
+    play.open(:archive)
+    play.key(:down)
+
+    assert_equal 1720, play.sheet.focus, "the first move lands on the top day"
+    play.key(:down)
+    play.key(:down)
+
+    assert_equal 1718, play.sheet.focus
+    play.key(:end)
+
+    assert_equal 0, play.sheet.focus
+    assert_equal play.sheet_layout.most_scroll, play.sheet.scroll, "the oldest is scrolled into view"
+    play.key(:home)
+
+    assert_equal 1720, play.sheet.focus
+    assert_equal 0, play.sheet.scroll
+    play.key(:pagedown)
+    play.key(:return)
+
+    assert_predicate play, :practice?
+    assert_operator play.game.day.number, :<, 1720
+  end
+
+  def test_a_tap_on_a_day_in_past_puzzles_opens_it
+    play = play(clock: Clock.pretending(Day.numbered(1720).date))
+    play.open(:archive)
+    layout = play.sheet_layout
+    row = layout.list.day_row(1719)
+    tap_rect(play, layout.row_rect(row, play.sheet.scroll))
+
+    assert_predicate play, :practice?
+    assert_equal 1719, play.game.day.number
   end
 end
