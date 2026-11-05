@@ -63,7 +63,7 @@ module CrossEm
 
         if state == :unused
           face = tile
-          @pen.fill(face, face_color, alpha: 0.5 * alpha, radius:)
+          @pen.fill(face, face_color, alpha:, radius:)
           dotted(face, radius, alpha)
         else
           @pen.fill(tile, edge_color, alpha:, radius:)
@@ -109,7 +109,7 @@ module CrossEm
       def colors(state, palette)
         case state
         when :finished then [palette.finished_face, palette.finished_edge, palette.finished_letter]
-        when :unused then [palette.tile_face, palette.tile_edge, palette.ink_muted]
+        when :unused then [palette.unused_face, palette.tile_edge, palette.ink_muted]
         else [palette.tile_face, palette.tile_edge, palette.tile_letter]
         end
       end
