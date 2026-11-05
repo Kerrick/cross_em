@@ -14,8 +14,26 @@ module CrossEm
     # the whole tile and is only uncovered by the face, never scaled, so
     # its glyphs stay 1:1 with the screen's pixels.
     class TilePainter
+      G = ::Lota::Graphics
+
       def initialize(pen)
         @pen = pen
+      end
+
+      # A dashed square with a small plus: a place the letter can go.
+      def target(rect, alpha = 1.0)
+        palette = @pen.palette
+        width = @pen.stroke(2)
+        radius = (rect.width * 0.14).round
+        @pen.fill(rect, palette.target, alpha: 0.1 * alpha, radius:)
+        @pen.dashed(rect, palette.target, width:, dash: @pen.px(6), gap: @pen.px(4), radius:, alpha:)
+        arm = (rect.width * 0.14).round
+        thick = @pen.stroke(2.5)
+        cx = rect.x + ((rect.width - thick) / 2)
+        cy = rect.y + ((rect.height - thick) / 2)
+        @pen.color(palette.target, alpha)
+        G.rectangle(:fill, cx - arm + (thick / 2), cy, 2 * arm, thick)
+        G.rectangle(:fill, cx, cy - arm + (thick / 2), thick, 2 * arm)
       end
 
       # A sunken dashed socket where a tile can sit and none does.
