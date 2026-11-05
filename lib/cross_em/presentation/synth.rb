@@ -56,6 +56,26 @@ module CrossEm
         finish(__send__(:"#{name}_sound"), LEVELS.fetch(name))
       end
 
+      # What the Speaker would put out for +plays+, each [at_seconds, name,
+      # pitch], played at full volume, every sound pitched as the Speaker
+      # pitches it (faster and shorter). For tests and previews: nothing
+      # here clips, so a sum over 1.0 shows where the game would.
+      def self.mixdown(plays, rendered: Hash.new { |sounds, name| sounds[name] = render(name) })
+        sequence(*plays.map { |at, name, pitch| [at, repitch(rendered[name], pitch)] })
+      end
+
+      # Plays +samples+ +pitch+ times as fast, as a voice's pitch does.
+      def self.repitch(samples, pitch)
+        return samples if pitch == 1
+
+        Array.new((samples.size / pitch).floor) do |index|
+          position = index * pitch
+          whole = position.floor
+          following = samples[whole + 1] || 0.0
+          samples[whole] + ((following - samples[whole]) * (position - whole))
+        end
+      end
+
       # --- The sounds ---
 
       # A wooden tock as a tile lifts: a short, soft marimba G.
@@ -271,7 +291,7 @@ module CrossEm
 
       private_class_method(*singleton_methods.grep(/_sound\z/), :bar, :bell, :soft_note, :thump, :strike, :glide,
                            :ring, :noise, :decay, :soften, :rise, :swell, :scale, :lowpass, :highpass, :bandpass, :shape,
-                           :biquad, :mix, :sequence, :finish, :seconds)
+                           :biquad, :mix, :sequence, :finish, :seconds, :repitch)
     end
   end
 end
