@@ -30,7 +30,6 @@ module CrossEm
         @clipboard = Clipboard.new
         @system_theme = system_theme
         @fonts = FontBook.new(Look::TYPE)
-        @input = Presentation::InputRouter.new
         @play = Presentation::Play.new(game: open_game(@clock.today), session: @session,
                                        settings:, host: self, measure: nil, clock: @clock,
                                        touch: TOUCH_SYSTEMS.include?(@os))
@@ -55,12 +54,12 @@ module CrossEm
       # --- Lota's input, as the player's pointers and keys ---
 
       def mouse(phase, x, y, button, istouch)
-        pointer = @input.mouse(phase, x, y, button:, istouch:)
+        pointer = Presentation::InputRouter.mouse(phase, x, y, button:, istouch:)
         @play.pointer(pointer) if pointer
       end
 
       def mouse_moved(x, y, istouch)
-        pointer = @input.mouse(:moved, x, y, button: 1, istouch:)
+        pointer = Presentation::InputRouter.mouse(:moved, x, y, button: 1, istouch:)
         return unless pointer
 
         @play.pointer(pointer)
@@ -68,7 +67,7 @@ module CrossEm
       end
 
       def touch(phase, id, x, y, devicetype, mouse)
-        pointer = @input.touch(phase, id, x, y, devicetype, mouse)
+        pointer = Presentation::InputRouter.touch(phase, id, x, y, devicetype, mouse)
         @play.pointer(pointer) if pointer
       end
 

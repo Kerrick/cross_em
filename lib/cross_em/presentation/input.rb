@@ -14,7 +14,9 @@ module CrossEm
     # 1) are not presses either: the trackpad also moves the mouse, and
     # scrolls through wheelmoved. On iOS and Android, SDL turns a real
     # mouse into touches marked +mouse+, which arrive again as the mouse.
-    class InputRouter < Data.define
+    module InputRouter
+      module_function
+
       def mouse(phase, x, y, button: 1, istouch: false)
         return if istouch || button != 1
 

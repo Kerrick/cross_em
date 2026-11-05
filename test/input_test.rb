@@ -5,7 +5,7 @@ require "presentation_helper"
 class InputTest < Minitest::Test
   include PresentationTest
 
-  def router = InputRouter.new
+  def router = InputRouter
 
   def test_a_finger_is_one_press_not_two
     assert router.touch(:pressed, 7, 10, 20, :touchscreen, false)
