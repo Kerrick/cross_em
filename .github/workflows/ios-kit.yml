@@ -14,9 +14,13 @@
 # checkout, in game/, as the game. What changed from Lota's: the game is
 # this repository rather than a dispatch input, its settings are fixed
 # below, Lota comes from its own checkout rather than the workflow's
-# repository, the touch job adds a CI-only probe (ios/touch_probe.rb) that
-# prints where each tap landed, and a v0.* tag attaches the kit to that
-# tag's prerelease.
+# repository, the Simulator runs use ios/simulator.rb (a copy of Lota's
+# ipad/simulator.rb at that commit that checks more patiently whether the
+# app still runs), the kit's README.txt is ios/README.txt (a copy of Lota's
+# ipad/README.txt at that commit that tells how to get this repository's
+# kit), the touch job adds a CI-only probe (ios/touch_probe.rb) that prints
+# where each tap landed, and a v0.* tag attaches the kit to that tag's
+# prerelease.
 #
 # Lota's iOS kit is an experiment, and its scripts are unsupported. The
 # three jobs are Lota's: the project, built and zipped (ios-kit); a fresh
@@ -200,6 +204,9 @@ jobs:
           export KIT_JSON=$RUNNER_TEMP/kit/kit.json
           export KIT_XCODE="$(xcodebuild -version | head -1)"
           export KIT_BUILT_WITH="Built on $(sw_vers -productName) $(sw_vers -productVersion) with $(xcodebuild -version | tr '\n' ' ')and XcodeGen $(xcodegen --version | sed 's/Version: //')"
+          # The kit's README.txt is Cross ’em's copy of Lota's
+          # ipad/README.txt, which says where this kit comes from.
+          cp "$GITHUB_WORKSPACE/game/ios/README.txt" ipad/README.txt
           ruby ipad/prepare.rb finish "$project"
           du -sh "$project"/*
           find "$project/fledge" -maxdepth 3 | sort | head -40
@@ -234,6 +241,13 @@ jobs:
           persist-credentials: false
           sparse-checkout: ipad
           path: lota
+
+      # And ios/, Cross ’em's copies of Lota's scripts.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: ios
+          path: game
 
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -291,7 +305,7 @@ jobs:
           app=$RUNNER_TEMP/derived/Build/Products/Debug-iphonesimulator/$APP_NAME.app
           IFS=';' read -ra devices <<< "$KIT_DEVICES"
           devices=("${devices[@]# }")
-          /usr/bin/ruby lota/ipad/simulator.rb "$app" "$APP_IDENTIFIER" "$APP_NAME" "$RUNNER_TEMP/simulator" portrait "${devices[@]}"
+          /usr/bin/ruby game/ios/simulator.rb "$app" "$APP_IDENTIFIER" "$APP_NAME" "$RUNNER_TEMP/simulator" portrait "${devices[@]}"
 
       - name: Zip the Simulator app
         if: always()
@@ -391,7 +405,7 @@ jobs:
           IFS=';' read -ra devices <<< "$KIT_DEVICES"
           devices=("${devices[@]# }")
           KIT_EXTRA_LAUNCHES="" KIT_XCTESTRUN=$(ls "$products"/*.xctestrun | head -1) \
-            /usr/bin/ruby lota/ipad/simulator.rb "$app" "$APP_IDENTIFIER" "$APP_NAME" "$RUNNER_TEMP/landscape" landscape "${devices[@]}"
+            /usr/bin/ruby game/ios/simulator.rb "$app" "$APP_IDENTIFIER" "$APP_NAME" "$RUNNER_TEMP/landscape" landscape "${devices[@]}"
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
