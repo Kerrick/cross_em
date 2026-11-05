@@ -1,0 +1,46 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Gets everything `bundle exec lota run` needs. Lota isn't on
+# RubyGems.org, so this downloads each platform's gem from Lota's GitHub
+# release into vendor/cache, checks it against the release's SHA256SUMS,
+# and then runs `bundle install`, which finds Lota there. vendor/cache is
+# not in git; run this again after changing LOTA_VERSION.
+
+require "digest"
+require "fileutils"
+require "net/http"
+require "uri"
+
+LOTA_VERSION = "0.1.3"
+PLATFORMS = %w[arm64-darwin x86_64-linux-gnu aarch64-linux-gnu x64-mingw-ucrt aarch64-mingw-ucrt].freeze
+RELEASE = "https://github.com/setdef/Lota/releases/download/v#{LOTA_VERSION}"
+CACHE = File.expand_path("../vendor/cache", __dir__)
+
+def fetch(url, limit = 5)
+  response = Net::HTTP.get_response(URI(url))
+  case response
+  when Net::HTTPRedirection
+    raise "too many redirects for #{url}" if limit.zero?
+
+    fetch(response["location"], limit - 1)
+  when Net::HTTPSuccess then response.body
+  else raise "#{url}: #{response.code} #{response.message}"
+  end
+end
+
+FileUtils.mkdir_p(CACHE)
+sums = fetch("#{RELEASE}/SHA256SUMS").lines.to_h { it.split.reverse }
+
+PLATFORMS.each do |platform|
+  name = "lota-#{LOTA_VERSION}-#{platform}.gem"
+  path = File.join(CACHE, name)
+  expected = sums.fetch(name) { abort "#{name} is not in the release's SHA256SUMS" }
+  unless File.exist?(path) && Digest::SHA256.file(path).hexdigest == expected
+    puts "Downloading #{name}"
+    File.binwrite(path, fetch("#{RELEASE}/#{name}"))
+  end
+  abort "#{name} does not match SHA256SUMS" unless Digest::SHA256.file(path).hexdigest == expected
+end
+
+Dir.chdir(File.expand_path("..", __dir__)) { system("bundle", "install", exception: true) }

@@ -39,26 +39,18 @@ You need:
 
 - **Ruby 4.0.9.** The version is in `.ruby-version`, and `mise install` sets
   it up if you use [mise](https://mise.jdx.dev).
-- **Lota 0.1.3.** Lota isn't on RubyGems.org. Download the gem for your
-  platform from [Lota's v0.1.3 release](https://github.com/setdef/Lota/releases/tag/v0.1.3),
-  check it, and install it:
-
-  ```sh
-  version=0.1.3
-  platform=arm64-darwin   # or x86_64-linux-gnu, aarch64-linux-gnu, x64-mingw-ucrt
-  curl -LO "https://github.com/setdef/Lota/releases/download/v$version/lota-$version-$platform.gem"
-  curl -LO "https://github.com/setdef/Lota/releases/download/v$version/SHA256SUMS"
-  shasum -a 256 --check --ignore-missing SHA256SUMS
-  gem install --local "lota-$version-$platform.gem"
-  ```
-
-  On Linux the game needs an X11 or Wayland desktop with OpenGL.
+- **Lota 0.1.3**, which `bin/setup` fetches for you. Lota isn't on
+  RubyGems.org, so the script downloads its gems from
+  [Lota's v0.1.3 release](https://github.com/setdef/Lota/releases/tag/v0.1.3)
+  into `vendor/cache`, checks them against the release's checksums, and runs
+  `bundle install`. On Linux the game needs an X11 or Wayland desktop with
+  OpenGL.
 
 Then, from this folder:
 
 ```sh
-bundle install   # minitest and rake, for the tests
-lota run .
+bin/setup
+bundle exec lota run
 ```
 
 Your games are saved in Lota's save folder under `cross_em`. On a Mac that's
