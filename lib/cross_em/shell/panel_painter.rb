@@ -14,7 +14,7 @@ module CrossEm
       def draw(play)
         layout = play.layout
         if (results = layout.results)
-          results(play, results)
+          @pen.fading(play.motion.results) { results(play, results) }
         else
           status(play.status, layout.status)
           layout.controls.each { |name, rect| control(play, name, rect) }

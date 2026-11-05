@@ -27,11 +27,11 @@ module CrossEm
       # Spacing and furniture, in points.
       class Metrics < Data.define(:margin, :gap, :header, :touch, :tile_min, :tile_max, :tile_gap, :cell_min,
                                   :cell_max, :board_pad, :status, :controls, :controls_max, :heading, :stats,
-                                  :column_min, :column_max, :sheet_max, :drag); end
+                                  :column_min, :column_max, :sheet_max, :drag, :lift); end
 
       METRICS = Metrics.new(margin: 16, gap: 12, header: 56, touch: 44, tile_min: 44, tile_max: 64, tile_gap: 8,
                             cell_min: 44, cell_max: 72, board_pad: 12, status: 56, controls: 48, controls_max: 520,
-                            heading: 66, stats: 58, column_min: 320, column_max: 430, sheet_max: 600, drag: 8)
+                            heading: 66, stats: 58, column_min: 320, column_max: 430, sheet_max: 600, drag: 8, lift: 7)
 
       # How long things take, in seconds.
       class Timing < Data.define(:give_up_confirm, :copied); end

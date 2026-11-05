@@ -26,6 +26,7 @@ module CrossEm
         @clock = clock
         @dictionary = Dictionary.parse(File.read(File.join(ROOT, Dictionary::FILE), encoding: Encoding::UTF_8))
         @session = Session.new(archive: archive, referee: Referee.new(@dictionary))
+        @cues = []
         @speaker = Speaker.new(muted: settings.muted, enabled: @env["CROSS_EM_MUTE"] != "1")
         @clipboard = Clipboard.new
         @system_theme = system_theme
@@ -43,6 +44,7 @@ module CrossEm
       def update(seconds)
         @speaker.warm
         @play.update(seconds)
+        cue_sounds
         development(seconds)
       end
 
@@ -119,11 +121,17 @@ module CrossEm
 
       def touch? = TOUCH_SYSTEMS.include?(@os)
 
+      # Plays the sounds whose time has come, some a little after their
+      # event (Presentation::Sounds).
+      def cue_sounds
+        due, @cues = @cues.partition { |at, _| at <= @elapsed }
+        due.each { |_, cue| sound(cue.name, pitch: cue.pitch) }
+      end
+
       def open_game(day)
         game = @session.open(day)
         game.subscribe do |event|
-          cue = Presentation::Sounds.for(event, game)
-          sound(cue.name, pitch: cue.pitch) if cue
+          Presentation::Sounds.for(event, game).each { |cue| @cues << [@elapsed + cue.delay, cue] }
         end
       end
 
@@ -214,6 +222,7 @@ module CrossEm
         when :help, :credits then @play.open(step.name)
         when :close then @play.close_sheet
         when :copy then @play.copy
+        when :calm then @play.toggle(:calm)
         when :next then @play.press_button(:next)
         when :scroll then scroll(@units.px(Float(args.fetch(0))))
         else warn "Cross ’em: no script step #{step.name}"

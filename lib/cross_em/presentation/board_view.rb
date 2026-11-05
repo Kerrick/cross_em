@@ -60,6 +60,13 @@ module CrossEm
         Rect.new(x: left, y: top, width: right - left, height: bottom - top)
       end
 
+      # A tile's footprint in the cell at +position+: the cell less a gap,
+      # so neighbouring tiles stand apart.
+      def tile_rect(position)
+        rect = rect_of(position)
+        rect.inset([(rect.width * 0.05).round, 2].max)
+      end
+
       def visible?(position) = rect_of(position).then { it.right > viewport.x && it.x < viewport.right && it.bottom > viewport.y && it.y < viewport.bottom }
 
       # Every column and row with any part inside the viewport.

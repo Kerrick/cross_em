@@ -17,6 +17,7 @@ module CrossEm
     #   help  credits      open those sheets; close closes one
     #   scroll:400         scrolls a sheet, or pans the board, by points
     #   copy               copies the result
+    #   calm               switches calm motion on or off
     #   wait:1.5           waits that many seconds before the next step
     class Script < Data.define(:steps)
       class Step < Data.define(:name, :args); end

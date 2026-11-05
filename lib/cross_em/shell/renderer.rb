@@ -4,7 +4,8 @@ module CrossEm
   module Shell
     # Draws a frame of the Play screen, straight to the window at its own
     # resolution: the page, the board, the header, the pool, the status
-    # and controls or the results, and any sheet over them.
+    # and controls or the results, the tiles in flight over them, any
+    # confetti, and any sheet over everything.
     class Renderer
       G = ::Lota::Graphics
 
@@ -17,6 +18,8 @@ module CrossEm
         @header = HeaderPainter.new(pen)
         @panel = PanelPainter.new(pen, buttons)
         @sheet = SheetPainter.new(pen, buttons)
+        @flights = FlightPainter.new(pen, tiles, @board, @pool)
+        @confetti = ConfettiPainter.new(pen)
       end
 
       def draw(play, appearance:, muted:)
@@ -30,6 +33,8 @@ module CrossEm
         @header.draw(play, appearance:, muted:)
         @pool.draw(play)
         @panel.draw(play)
+        @flights.draw(play)
+        @confetti.draw(play)
         @sheet.draw(play)
       end
     end

@@ -3,9 +3,9 @@
 module CrossEm
   module Shell
     # The twelve slots: a raised tile for each letter waiting, lifted with
-    # a ring and a caret under it when picked up, and a sunken dashed
-    # socket where a letter has gone to the grid. After a loss, the
-    # letters left over are faded inside dotted outlines: unused.
+    # a ring and a caret under it, bobbing, when picked up, and a sunken
+    # dashed socket where a letter has gone to the grid. After a loss, the
+    # letters left over fade inside dotted outlines: unused.
     class PoolPainter
       def initialize(pen, tiles)
         @pen, @tiles = pen, tiles
@@ -13,24 +13,35 @@ module CrossEm
 
       def draw(play)
         game = play.game
+        motion = play.motion
         play.layout.pool.each_with_index do |rect, index|
+          socket(rect)
           letter = game.pool[index]
-          next socket(rect) unless letter
+          next if letter.nil? || motion.flying?([:slot, index])
 
+          pose = motion.pose([:slot, index], rect)
           if game.over?
-            @tiles.draw(rect, letter, state: :unused)
-          elsif game.selected == index
-            caret(rect)
-            @tiles.draw(rect, letter, state: :selected, lift: @pen.px(7), depth: depth(rect))
+            unused(pose, letter, motion)
           else
-            @tiles.draw(rect, letter, depth: depth(rect))
+            selected = game.selected == index
+            caret(rect) if selected
+            @tiles.draw(pose.rect, letter, state: selected ? :selected : :plain, depth: depth(rect),
+                                           lift: lift(motion, index), alpha: pose.alpha, squash: pose.squash)
           end
         end
       end
 
+      def depth(rect) = [(rect.height * 0.1).round, @pen.px(3)].max
+      def lift(motion, index) = (@pen.px(Presentation::Look::METRICS.lift) * motion.lift(index)).round
+
       private
 
-      def depth(rect) = [(rect.height * 0.1).round, @pen.px(3)].max
+      # A letter left over after a loss, fading from a tile to an outline.
+      def unused(pose, letter, motion)
+        t = motion.finish(Position::ORIGIN)
+        @tiles.draw(pose.rect, letter, alpha: 1.0 - t, depth: depth(pose.rect)) if t < 1.0
+        @tiles.draw(pose.rect, letter, state: :unused, alpha: t)
+      end
 
       def socket(rect)
         palette = @pen.palette

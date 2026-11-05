@@ -16,12 +16,22 @@ module CrossEm
 
       def initialize(units:, type:, palette:)
         @units, @type, @palette = units, type, palette
+        @fade = 1.0
+      end
+
+      # Draws the block with everything +alpha+ times as opaque.
+      def fading(alpha)
+        before = @fade
+        @fade *= alpha
+        yield
+      ensure
+        @fade = before
       end
 
       def px(points) = units.px(points)
       def stroke(points) = units.stroke(points)
 
-      def color(color, alpha = 1.0) = G.color = [color.r, color.g, color.b, color.a * alpha]
+      def color(color, alpha = 1.0) = G.color = [color.r, color.g, color.b, color.a * alpha * @fade]
 
       def fill(rect, color, alpha: 1.0, radius: 0)
         return if rect.empty?

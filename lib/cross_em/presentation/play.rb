@@ -14,7 +14,7 @@ module CrossEm
       M = Look::METRICS
       T = Look::TIMING
 
-      attr_reader :game, :settings, :gesture, :time, :units
+      attr_reader :game, :settings, :gesture, :time, :units, :motion
 
       # +host+ answers sound(name), copy(text), settings_changed(settings),
       # next_day, dark? and read(path). +measure+ wraps text for the sheets (SheetLayout).
@@ -30,6 +30,7 @@ module CrossEm
 
       def game=(game)
         @game = game
+        @motion = Motion.new(calm: @settings.calm).tap { it.update(@time) }
         @view = nil
         @armed_at = @copied_at = @stats = nil
         game.subscribe { changed(it) }
@@ -45,7 +46,10 @@ module CrossEm
         @view = nil
       end
 
-      def update(seconds) = @time += seconds
+      def update(seconds)
+        @time += seconds
+        @motion.update(@time)
+      end
 
       # --- What the painters read ---
 
@@ -59,6 +63,13 @@ module CrossEm
       def view
         refit if @view.nil? || @view.viewport != layout.board
         @view
+      end
+
+      # The view as the board is drawn this frame: on its way to #view
+      # while the camera eases.
+      def shown_view
+        target = view
+        @motion.view || target
       end
 
       def sheet = @sheets.last
@@ -142,7 +153,7 @@ module CrossEm
       def wheel(dx, dy)
         step = units.px(40)
         if sheet? then scroll_sheet(-dy * step)
-        else @view = view.pan(-dx * step, dy * step)
+        else pan(-dx * step, dy * step)
         end
       end
 
@@ -260,7 +271,12 @@ module CrossEm
         @sheets[-1] = sheet.scrolled(by.round, sheet_layout)
       end
 
-      def pan(dx, dy) = @view = view.pan(dx, dy)
+      # Moves the board under the finger at once, the camera stopping
+      # wherever it was easing to.
+      def pan(dx, dy)
+        @view = shown_view.with(viewport: view.viewport, content: view.content, cell: view.cell).pan(dx, dy)
+        @motion.camera(nil, @view)
+      end
 
       private
 
@@ -270,6 +286,7 @@ module CrossEm
 
       def settle(settings)
         @settings = settings
+        @motion.calm = settings.calm
         @host.settings_changed(settings)
       end
 
@@ -311,7 +328,7 @@ module CrossEm
 
       def drag(target, dx, dy)
         case target
-        in [:board] then @view = view.pan(dx, dy)
+        in [:board] then pan(dx, dy)
         in [:sheet, _] then scroll_sheet(-dy)
         else nil
         end
@@ -319,7 +336,7 @@ module CrossEm
 
       def tapped(gesture)
         case gesture.target
-        in [:board] then tap_cell(view.cell_at(gesture.start_x, gesture.start_y))
+        in [:board] then tap_cell(shown_view.cell_at(gesture.start_x, gesture.start_y))
         in [:button, name] then press_button(name) if target_at(gesture.x, gesture.y) == gesture.target
         in [:sheet, :close | :scrim] then close_sheet
         in [:sheet, :body]
@@ -337,19 +354,67 @@ module CrossEm
         end
       end
 
-      # After every move the board is framed again, keeping the letter just
-      # placed in view.
+      # Each change is shown arriving from where it came from, measured on
+      # the screen as it was; after every move the board is framed again,
+      # keeping the letter just placed in view.
       def changed(event)
         case event
-        when Events::Placed then refit(focus: event.position)
-        when Events::Returned, Events::Reset then refit
-        when Events::Won, Events::Lost then @stats = nil
+        when Events::Selected then selected(event.index)
+        when Events::Deselected then deselected(event.index)
+        when Events::Placed then placed(event)
+        when Events::Returned then returned([event])
+        when Events::Reset then returned(event.returns)
+        when Events::Shuffled then shuffled(event.order)
+        when Events::Checked then @motion.checked(game.board.bounds, event.check.problems.keys)
+        when Events::Won, Events::Lost then ended(event)
         end
       end
 
+      def selected(index)
+        @motion.selected(index, @lifted_slot)
+        @lifted_slot = index
+      end
+
+      def deselected(index)
+        @motion.lowered(index)
+        @lifted_slot = nil
+      end
+
+      def placed(event)
+        slot = layout.pool[event.index]
+        lift = units.px(Look::METRICS.lift) * @motion.lift(event.index)
+        @motion.left(event.index)
+        @lifted_slot = nil
+        @motion.fly([:cell, event.position], slot.offset(0, -lift.round), :place)
+        refit(focus: event.position)
+      end
+
+      def returned(returns)
+        from = returns.to_h { [it.index, shown_view.tile_rect(it.position)] }
+        @lifted_slot = nil
+        refit
+        returns.each_with_index { |back, i| @motion.fly([:slot, back.index], from[back.index], :return, delay: i * Motion::STAGGER) }
+      end
+
+      def shuffled(order)
+        @lifted_slot = game.selected
+        @motion.moved_lift(game.selected)
+        order.each_with_index do |old, new|
+          @motion.fly([:slot, new], layout.pool[old], :shuffle) if game.pool.letter?(new) && old != new
+        end
+      end
+
+      def ended(event)
+        @stats = nil
+        @lifted_slot = nil
+        event.is_a?(Events::Won) ? @motion.won(game.board.bounds) : @motion.lost
+      end
+
       def refit(focus: nil)
+        before = @motion.view || @view
         @view = BoardView.fit(viewport: layout.board, content: BoardView.content_of(game.board), units:, focus:,
                               previous: @view)
+        @motion.camera(before, @view)
       end
     end
   end

@@ -29,8 +29,9 @@ module CrossEm
       def countdown_label = fonts.sans(px(S.countdown_label))
       def sheet_title = fonts.slab(px(S.sheet_title))
 
-      # A tile's letter, sized to the tile's face in pixels.
-      def tile(face) = fonts.slab((face * 0.6).round)
+      # A tile's letter, sized to the tile's face in pixels, in steps of
+      # two pixels, so a tile that grows in flight uses only a few sizes.
+      def tile(face) = fonts.slab([((face * 0.3).round * 2), 2].max)
 
       # The fonts of a sheet's text, by SheetLayout's styles.
       def style(name)
