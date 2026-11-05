@@ -19,10 +19,9 @@ module CrossEm
       def load
         @os = ::Lota::System.os
         @folder = SaveFolder.new
-        @settings_store = SettingsStore.new(@folder)
+        theme = @env["CROSS_EM_THEME"]&.then { Presentation::Appearance.parse(it) }
+        @settings_store = SettingsStore.new(@folder, appearance: theme)
         settings = @settings_store.load
-        theme = @env["CROSS_EM_THEME"]
-        settings = settings.with(appearance: Presentation::Appearance.parse(theme)) if theme
         @clock = clock
         @dictionary = Dictionary.parse(File.read(File.join(ROOT, Dictionary::FILE), encoding: Encoding::UTF_8))
         @session = Session.new(archive: archive, referee: Referee.new(@dictionary))
