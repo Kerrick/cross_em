@@ -138,16 +138,9 @@ module CrossEm
         end
       end
 
-      # The records. A file that cannot be read is kept aside under
-      # another name, and the game starts a fresh one, rather than fail.
-      def archive
-        Archive.new(@folder)
-      rescue StandardError => e
-        warn "Cross ’em: the saved games could not be read (#{e.message}); keeping them aside"
-        damaged = @folder.read(Archive::FILE)
-        @folder.write("records-unreadable-#{Time.now.to_i}.json", damaged) if damaged
-        Archive.new(Archive::Memory.new).tap { @folder.write(Archive::FILE, JSON.generate({"format" => 1, "days" => []})) }
-      end
+      # The records (Archive.open keeps a damaged file aside and begins a
+      # fresh one, so the game always opens and saves).
+      def archive = Archive.open(@folder, warn: ->(message) { warn "Cross ’em: #{message}" })
 
       def palette = Presentation::Palette.for(dark?)
 
