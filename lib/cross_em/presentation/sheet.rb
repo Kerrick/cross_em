@@ -38,7 +38,7 @@ module CrossEm
     # +wrap(style, text, width)+ with the lines and +line_height(style)+
     # in pixels; the shell measures with the real fonts, tests with a
     # stand-in.
-    class SheetLayout < Data.define(:card, :title, :close, :body, :lines, :controls, :examples, :content_height)
+    class SheetLayout < Data.define(:card, :title, :close, :link, :body, :lines, :controls, :examples, :content_height)
       # A line of text at (+x+, +y+), +y+ from the body's top.
       class Line < Data.define(:style, :text, :x, :y); end
 
@@ -62,8 +62,11 @@ module CrossEm
 
       M = Look::METRICS
 
-      def self.build(blocks:, safe:, units:, measure:)
-        Builder.new(safe:, units:, measure:).build(blocks)
+      # +link+, if given as [id, text], is a button in the title bar,
+      # beside the close button, always in reach however far the body
+      # has scrolled.
+      def self.build(blocks:, safe:, units:, measure:, link: nil)
+        Builder.new(safe:, units:, measure:).build(blocks, link)
       end
 
       def most_scroll = [content_height - body.height, 0].max
@@ -84,7 +87,7 @@ module CrossEm
           @y = 0
         end
 
-        def build(blocks)
+        def build(blocks, link = nil)
           margin = px(M.margin)
           width = [@safe.width - (2 * margin), px(M.sheet_max)].min
           @pad = px(width < px(420) ? 20 : 28)
@@ -101,13 +104,20 @@ module CrossEm
           close = Rect.new(x: card.right - px(8) - px(M.touch), y: card.y + ((title_height - px(M.touch)) / 2),
                            width: px(M.touch), height: px(M.touch))
           body = Rect.new(x: card.x + @pad, y: title.bottom, width: @width, height: card.bottom - title.bottom)
-          SheetLayout.new(card:, title:, close:, body:, lines: @lines.freeze, controls: @controls.freeze,
+          link &&= title_link(link, close)
+          SheetLayout.new(card:, title:, close:, link:, body:, lines: @lines.freeze, controls: @controls.freeze,
                           examples: @examples.freeze, content_height: content)
         end
 
         private
 
         def px(points) = @u.px(points)
+
+        def title_link((id, text), close)
+          width = px(88)
+          rect = Rect.new(x: close.x - px(4) - width, y: close.y, width:, height: close.height)
+          Control.new(id:, kind: :button, rect:, text:, detail: nil, primary: false)
+        end
 
         def place(block, first)
           case block.kind

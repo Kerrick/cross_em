@@ -78,7 +78,8 @@ module CrossEm
 
       def sheet_layout
         kind = sheet&.kind or return
-        @sheet_layouts[kind] ||= SheetLayout.build(blocks: blocks(kind), safe: safe_rect, units:, measure: @measure)
+        @sheet_layouts[kind] ||= SheetLayout.build(blocks: blocks(kind), safe: safe_rect, units:, measure: @measure,
+                                                   link: kind == :help ? [:credits, Copy::CREDITS] : nil)
       end
 
       def status = Copy.status(game)

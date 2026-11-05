@@ -29,6 +29,18 @@ class SheetTest < Minitest::Test
     assert_equal example.rect.bottom - last.bottom, first.y - example.rect.y
   end
 
+  def test_a_link_sits_in_the_title_bar_beside_the_close_button
+    layout = SheetLayout.build(blocks: [Block.body("word " * 400)], safe: rect(0, 0, 390, 844), units: units,
+                               measure: FakeMeasure.new, link: [:credits, "Credits"])
+    link = layout.link.rect
+
+    assert_equal :credits, layout.link.id
+    assert_operator link.right, :<=, layout.close.x
+    assert_operator link.bottom, :<=, layout.body.y
+    assert_operator link.height, :>=, 44
+    assert_nil build([Block.body("Short.")]).link
+  end
+
   def test_a_license_keeps_its_lines_and_scrolls_when_long
     text = (1..200).map { "Line #{it} of the license." }.join("\n")
     layout = build([Block.license(text)])

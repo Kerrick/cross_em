@@ -130,6 +130,14 @@ class PlayTest < Minitest::Test
     assert_nil play.game.selected
   end
 
+  def test_credits_are_two_taps_from_the_header
+    play = play(settings: Settings.default.with(instructions_seen: true))
+    tap_rect(play, play.layout.help_button)
+    tap_rect(play, play.sheet_layout.link.rect)
+
+    assert_equal :credits, play.sheet.kind
+  end
+
   def test_the_header_buttons_change_settings
     play = play()
     tap_rect(play, play.layout.sound_button)

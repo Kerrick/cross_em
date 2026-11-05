@@ -55,12 +55,16 @@ class CopyTest < Minitest::Test
     assert_equal ["Game over", "3 of 12 letters crossed."], [status(lost).text, status(lost).detail]
   end
 
-  def test_the_instructions_carry_the_word_list_credit_exactly
+  def test_the_credits_open_with_the_word_list_credit_exactly_then_its_copyright_file
     credit = "Word list based on SCOWL by Kevin Atkinson and the sources it credits, including ENABLE and the " \
              "UK Advanced Cryptics Dictionary, Copyright (c) J Ross Beresford 1993-1999. All Rights Reserved."
-    texts = Copy.instructions(touch: true).map(&:text)
+    read = ->(path) { File.read(File.expand_path("../#{path}", __dir__)) }
+    blocks = Copy.credits(read)
 
-    assert_includes texts, credit
+    assert_equal [:heading, "Word list"], [blocks[0].kind, blocks[0].text]
+    assert_equal credit, blocks[1].text
+    assert_equal [:license, read.("wordlist-COPYRIGHT.txt")], [blocks[2].kind, blocks[2].text]
+    refute_includes Copy.instructions(touch: true).map(&:text), credit
   end
 
   def test_the_credits_show_the_shipped_files_unmodified

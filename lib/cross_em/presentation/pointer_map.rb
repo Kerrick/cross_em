@@ -71,7 +71,7 @@ module CrossEm
         in [:button, name] then @play.enabled?(name) ? :hand : :arrow
         in [:slot, index] then @play.game.playing? && @play.game.pool.letter?(index) ? :hand : :arrow
         in [:board] then board_cursor(@play.shown_view.cell_at(x, y))
-        in [:sheet, :close | :scrim] then :hand
+        in [:sheet, :close | :scrim | :link] then :hand
         in [:sheet, :body] then @play.sheet_layout.control_at(x, y, @play.sheet.scroll) ? :hand : :arrow
         else :arrow
         end
@@ -99,6 +99,7 @@ module CrossEm
       def sheet_target_at(x, y)
         sheet = @play.sheet_layout
         if sheet.close.contains?(x, y) then [:sheet, :close]
+        elsif sheet.link&.rect&.contains?(x, y) then [:sheet, :link]
         elsif sheet.body.contains?(x, y) then [:sheet, :body]
         elsif sheet.card.contains?(x, y) then [:sheet, :card]
         else [:sheet, :scrim]
@@ -126,6 +127,7 @@ module CrossEm
         in [:board] then @play.tap_cell(@play.shown_view.cell_at(gesture.start_x, gesture.start_y))
         in [:button, name] then @play.press_button(name) if target_at(gesture.x, gesture.y) == gesture.target
         in [:sheet, :close | :scrim] then @play.close_sheet
+        in [:sheet, :link] then sheet_control(@play.sheet_layout.link.id)
         in [:sheet, :body]
           control = @play.sheet_layout.control_at(gesture.x, gesture.y, @play.sheet.scroll)
           sheet_control(control.id) if control

@@ -20,9 +20,10 @@ module CrossEm
         @pen.fill(layout.card, palette.card, radius:)
         @pen.outline(layout.card, palette.rule, radius:)
 
-        title = @pen.type.sheet_title
+        title = title_font(sheet.title, (layout.link&.rect || layout.close).x - layout.title.x - @pen.px(8))
         @pen.text(sheet.title, title, layout.title.x, @pen.middle_top(title, layout.title.center_y), palette.ink)
         close(layout.close)
+        link(layout.link, play) if layout.link
         @pen.fill(layout.title.with(y: layout.title.bottom - 1, height: 1), palette.rule)
 
         body(play, layout, sheet.scroll)
@@ -40,6 +41,24 @@ module CrossEm
         ink = @pen.palette.ink
         @pen.line(ink, width, box.x, box.y, box.right, box.bottom)
         @pen.line(ink, width, box.x, box.bottom, box.right, box.y)
+      end
+
+      # The title's slab at its size, or smaller where a narrow card
+      # leaves it less room beside the title bar's buttons.
+      def title_font(text, room)
+        size = Presentation::Look::SIZES.sheet_title
+        [size, size - 4, size - 7].each do |points|
+          font = @pen.type.fonts.slab(@pen.px(points))
+          return font if font.width(text) <= room
+        end
+        @pen.type.fonts.slab(@pen.px(size - 7))
+      end
+
+      # A button in the title bar, as the body's buttons look, a little
+      # shorter than its reach.
+      def link(control, play)
+        pressed = play.gesture&.target == [:sheet, :link] && play.gesture.tap?
+        @buttons.draw(control.rect.inset(0, @pen.px(5)), control.text, kind: :plain, pressed:)
       end
 
       def body(play, layout, scroll)

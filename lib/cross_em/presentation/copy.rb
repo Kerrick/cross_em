@@ -12,6 +12,7 @@ module CrossEm
       RESET = "Reset"
       GIVE_UP = "Give up"
       CONFIRM_GIVE_UP = "Give up? Tap again"
+      CREDITS = "Credits"
       COPY_RESULT = "Copy result"
       COPIED = "Copied"
       COPY_FAILED = "Couldn't copy"
@@ -73,8 +74,9 @@ module CrossEm
         end.uniq
       end
 
-      # How to play, as Sheet blocks: every rule, then the settings and
-      # the word list's credit.
+      # How to play, as Sheet blocks: every rule, then the settings. The
+      # word list's credit is at the top of the Credits, a tap away from
+      # here.
       def instructions(touch:)
         [
           Block.body("Make connected words, crossword style, from the day's twelve letters. " \
@@ -94,17 +96,19 @@ module CrossEm
           Block.space,
           Block.toggle(:calm, "Calm motion", "Gentle fades instead of flights and bounces."),
           Block.space,
-          Block.small(WORD_LIST_CREDIT),
-          Block.space,
-          Block.buttons([[:credits, "Credits", false], [:close, "Play", true]])
+          Block.buttons([[:credits, CREDITS, false], [:close, "Play", true]])
         ].compact
       end
 
-      # The credits, as Sheet blocks, from the files that ship with the
-      # game: +read+ takes a file's path in the game folder and answers its
+      # The credits, as Sheet blocks, the word list's first (its credit,
+      # word for word, then its whole copyright file), from the files that
+      # ship with the game: +read+ takes a file's path in the game folder and answers its
       # text, which is shown unmodified.
       def credits(read)
         [
+          Block.heading("Word list"),
+          Block.small(WORD_LIST_CREDIT),
+          Block.license(read.("wordlist-COPYRIGHT.txt")),
           Block.heading("Cross ’em"),
           Block.body("A daily word puzzle, made in Ruby. Free software under the GNU Affero General Public " \
                      "License 3.0."),
@@ -113,9 +117,6 @@ module CrossEm
                      "License 3.0 or later."),
           Block.body("LÖVE, the free 2D game framework, copyright (c) 2006-2026 LÖVE Development Team, under " \
                      "the zlib license."),
-          Block.heading("Word list"),
-          Block.small(WORD_LIST_CREDIT),
-          Block.license(read.("wordlist-COPYRIGHT.txt")),
           Block.heading("Fonts"),
           Block.body("Zilla Slab, copyright (c) 2017 The Mozilla Foundation, and Atkinson Hyperlegible, " \
                      "copyright (c) 2020 Braille Institute of America, Inc., are used unmodified under the " \
