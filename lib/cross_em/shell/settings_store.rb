@@ -9,7 +9,13 @@ module CrossEm
         @folder = folder
       end
 
-      def load = Presentation::Settings.parse(@folder.read(Presentation::Settings::FILE))
+      # The settings, or the defaults when they cannot be read.
+      def load
+        Presentation::Settings.parse(@folder.read(Presentation::Settings::FILE))
+      rescue Archive::Unreadable => e
+        warn "Cross ’em: #{e.message}; using the default settings"
+        Presentation::Settings.default
+      end
       def save(settings) = @folder.write(Presentation::Settings::FILE, settings.to_json)
     end
   end

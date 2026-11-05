@@ -36,4 +36,19 @@ class ArchiveTest < Minitest::Test
   def test_a_fresh_file_names_its_format
     assert_equal Archive::FORMAT, JSON.parse(Archive.empty_text).fetch("format")
   end
+
+  # A storage whose records file is there but cannot be read.
+  class Unreadable < CrossEm::Archive::Memory
+    def written(name) = @files[name]
+    def read(name) = name == CrossEm::Archive::FILE ? raise(CrossEm::Archive::Unreadable, name) : super
+  end
+
+  def test_records_that_cannot_be_read_are_never_written_over
+    storage = Unreadable.new
+    archive = Archive.open(storage, now: NOW)
+    archive.save(played_record)
+
+    assert_nil storage.written(Archive::FILE)
+    assert_equal 1, archive.size, "the session still plays"
+  end
 end

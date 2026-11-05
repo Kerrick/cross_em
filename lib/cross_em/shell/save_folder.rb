@@ -5,16 +5,22 @@ module CrossEm
     # The game's save folder, as the storage an Archive and the settings
     # keep their files in: it answers +read(name)+ with a file's text, or
     # nil, and +write(name, text)+. Lota's Filesystem never raises for a
-    # missing or unwritable file, it answers [nil, message]; anything else
-    # that goes wrong is caught too, so a save that fails loses the save,
-    # never the game.
+    # missing or unwritable file, it answers [nil, message]; a write that
+    # fails is reported and lost, never the game.
     class SaveFolder
+      # The file's text, or nil when there is no such file. A file that is
+      # there but cannot be read raises Archive::Unreadable, so the records
+      # are never written over for want of reading them.
       def read(name)
-        contents, = ::Lota::Filesystem.read(name)
-        contents&.dup&.force_encoding(Encoding::UTF_8)
+        contents, message = ::Lota::Filesystem.read(name)
+        return contents.dup.force_encoding(Encoding::UTF_8) if contents
+        return if ::Lota::Filesystem.info(name).nil?
+
+        raise Archive::Unreadable, "#{name}: #{message}"
+      rescue Archive::Unreadable
+        raise
       rescue StandardError => e
-        warn "Cross ’em: could not read #{name}: #{e.message}"
-        nil
+        raise Archive::Unreadable, "#{name}: #{e.message}"
       end
 
       def write(name, text)

@@ -20,14 +20,32 @@ module CrossEm
       def write(name, text) = @files[name] = text
     end
 
+    # A storage raises this when a file is there but cannot be read, which
+    # is not the same as there being none.
+    class Unreadable < StandardError; end
+
+    # A storage for a session whose records could not be read: it shows
+    # none and saves nothing, so the records it could not read are never
+    # written over.
+    class Unsaved
+      def read(_name) = nil
+      def write(_name, text) = text
+    end
+
     # What a records file that cannot be read means: it is damaged.
     DAMAGED = [JSON::ParserError, KeyError, TypeError, NoMethodError, ArgumentError].freeze
 
     # The archive in +storage+. A records file that is damaged is kept
     # aside under another name, with +now+ in it, and a fresh one begun, so
     # the game opens and goes on saving. +warn+ hears what happened.
+    #
+    # A file that is there but cannot be read at all is left alone: the
+    # session starts afresh and saves nothing.
     def self.open(storage, now: Time.now, warn: ->(_message) {})
       new(storage)
+    rescue Unreadable => e
+      warn.("the saved games could not be read (#{e.message}); this session will not save")
+      new(Unsaved.new)
     rescue *DAMAGED => e
       damaged = storage.read(FILE)
       aside = "records-unreadable-#{now.to_i}.json"
