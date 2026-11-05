@@ -26,7 +26,10 @@ archive=$(find "$dist" -maxdepth 1 \( -name '*.tar.gz' -o -name '*.zip' \) | hea
 echo "unpacking $archive"
 case "$archive" in
   *.tar.gz) tar -xzf "$archive" -C "$work/unpacked" ;;
-  *.zip) powershell -NoProfile -Command "Expand-Archive -LiteralPath '$(cygpath -w "$archive")' -DestinationPath '$(cygpath -w "$work/unpacked")'" ;;
+  # The paths reach PowerShell through the environment, never as quoted
+  # literals: PowerShell counts the ’ in "Cross ’em" as a quote mark.
+  *.zip) SMOKE_ZIP=$(cygpath -w "$archive") SMOKE_TO=$(cygpath -w "$work/unpacked") \
+           powershell -NoProfile -Command 'Expand-Archive -LiteralPath $env:SMOKE_ZIP -DestinationPath $env:SMOKE_TO' ;;
 esac
 
 launcher=$(find "$work/unpacked" -path '*/game/*/bin/cross_em' -type f | head -1)
