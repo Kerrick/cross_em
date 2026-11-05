@@ -20,6 +20,19 @@ class UnitsTest < Minitest::Test
     assert_in_delta 1.0, Units.new(scale: 0).scale
   end
 
+  def test_phones_tablets_and_laptops_draw_the_design_at_its_own_size
+    [[390, 844, 3], [844, 390, 3], [820, 1180, 2], [1280, 800, 2], [1440, 900, 2]].each do |w, h, d|
+      assert_in_delta d, Units.for_window(density: d, width: w * d, height: h * d).scale, 1e-9, "#{w}x#{h}"
+    end
+  end
+
+  def test_a_big_screen_draws_the_design_larger_in_eighths
+    assert_in_delta 1.25, Units.for_window(density: 1, width: 1920, height: 1080).scale
+    assert_in_delta 2.25, Units.for_window(density: 2, width: 2 * 1512, height: 2 * 982).scale
+    assert_in_delta 2.25, Units.for_window(density: 2, width: 2 * 1366, height: 2 * 1024).scale
+    assert_in_delta 1.5, Units.for_window(density: 1, width: 3840, height: 2160).scale
+  end
+
   def test_columns_share_out_every_pixel
     parts = rect(10, 0, 101, 20).columns(3, 5)
 

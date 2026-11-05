@@ -85,17 +85,18 @@ module CrossEm
       def theme_changed = @system_theme = system_theme
 
       # The window changed size, or moved to a screen of another density:
-      # everything is measured again, and fonts are made at the new size.
+      # everything is measured again, and fonts are made at the new size
+      # (a big window draws the design larger; Units.for_window).
       def resize
         return unless @play
 
-        units = Presentation::Units.new(scale: density)
+        width, height = ::Lota::Graphics.dimensions
+        units = Presentation::Units.for_window(density:, width:, height:)
         @fonts.forget if @units && @units.scale != units.scale
         @units = units
         @type = Typesetter.new(@fonts, units)
         @pen = Pen.new(units:, type: @type, palette:)
         @renderer = Renderer.new(@pen)
-        width, height = ::Lota::Graphics.dimensions
         @play.resize(width:, height:, units:, safe: safe_area(width, height), measure: @type)
       end
 

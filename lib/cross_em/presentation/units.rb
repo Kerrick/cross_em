@@ -10,6 +10,19 @@ module CrossEm
     class Units < Data.define(:scale)
       def initialize(scale:) = super(scale: scale.to_f.positive? ? scale.to_f : 1.0)
 
+      # The Units for a window +width+ by +height+ pixels on a screen of
+      # +density+. Where the window has room to spare beyond the size the
+      # design was drawn for, the whole design is drawn larger, in steps
+      # of an eighth up to Look::ZOOM's most, so a big screen shows a
+      # bigger page rather than more empty paper. Every size still rounds
+      # to whole pixels, so it stays as sharp.
+      def self.for_window(density:, width:, height:)
+        base = new(scale: density)
+        zoom = Look::ZOOM
+        fit = [base.pt(width) / zoom.width, base.pt(height) / zoom.height].min
+        new(scale: base.scale * ((fit * 8).floor / 8.0).clamp(1.0, zoom.most))
+      end
+
       # +points+ as whole pixels.
       def px(points) = (points * scale).round
 

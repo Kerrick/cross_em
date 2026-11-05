@@ -33,6 +33,13 @@ module CrossEm
                             cell_min: 44, cell_max: 72, board_pad: 12, status: 56, controls: 48, controls_max: 520,
                             heading: 66, stats: 58, column_min: 320, column_max: 430, sheet_max: 600, drag: 8, lift: 7)
 
+      # How much larger the whole design is drawn on a big screen: none
+      # until the window is wider and taller, in points, than this, then
+      # in proportion, up to +most+ (Units.for_window).
+      class Zoom < Data.define(:width, :height, :most); end
+
+      ZOOM = Zoom.new(width: 1200, height: 820, most: 1.5)
+
       # How long things take, in seconds.
       class Timing < Data.define(:give_up_confirm, :copied); end
 
