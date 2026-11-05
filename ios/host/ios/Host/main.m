@@ -1,9 +1,12 @@
 // SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
 // SPDX-License-Identifier: MIT-0
 //
+// A stopgap: this host stands in until Lota ships its own phone build
+// with an iOS host of its own.
+//
 // Cross ’em's copy of Lota's experimental ipad/host/ios/Host/main.m at
 // setdef/Lota commit 5e68d3d (experiment/ios-kit-1), unchanged but for
-// this note.
+// these notes.
 //
 // The app's entry point when SDL3 owns the screen (Fledge's ADR 025), in
 // place of the Host/main.m fledge build writes. SDL_RunApp starts UIKit

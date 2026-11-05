@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 # Cross ’em's copy of Lota's experimental ipad/icon.rb at setdef/Lota commit
-# 5e68d3d (experiment/ios-kit-1), unchanged but for this note. The iOS kit
+# 5e68d3d (experiment/ios-kit-1), unchanged but for these notes. The iOS kit
 # workflow builds the project from it with released Lota (v0.1.3) and
 # Fledge v0.5.1, so it needs nothing from Lota's experiment branch.
 

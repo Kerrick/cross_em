@@ -1,9 +1,12 @@
 # SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
+# A stopgap: this host stands in until Lota ships its own phone build
+# with an iOS host of its own.
+#
 # Cross ’em's copy of Lota's experimental ipad/host/ios/project.yml at
 # setdef/Lota commit 5e68d3d (experiment/ios-kit-1), unchanged but for
-# this note.
+# these notes.
 #
 # The iOS kit's project.yml: Fledge's examples/sdl_phone/host/ios/project.yml
 # (v0.5.0), less its UI test target. SDL3 owns the main loop, and Ruby runs

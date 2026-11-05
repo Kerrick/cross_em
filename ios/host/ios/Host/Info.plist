@@ -3,8 +3,11 @@
   SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
   SPDX-License-Identifier: AGPL-3.0-or-later
 
+  A stopgap: this host stands in until Lota ships its own phone build
+  with an iOS host of its own.
+
   Cross ’em's copy of Lota's experimental ipad/host/ios/Host/Info.plist
-  at setdef/Lota commit 5e68d3d, unchanged but for this note.
+  at setdef/Lota commit 5e68d3d, unchanged but for these notes.
 
   The iOS kit's Info.plist, which ipad/prepare.rb fills in and fledge.yml's
   ios host lays over Fledge's (Fledge 0.5.0, ADR 025). It starts from

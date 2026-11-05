@@ -1,6 +1,10 @@
 # SPDX-FileCopyrightText: 2026 Kerrick Long <me@kerricklong.com>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
+# A stopgap, kept minimal: it stands in until Lota ships its own phone
+# build, which is to make the iOS project from released Lota and provide
+# the iOS host. Then this workflow should use that instead.
+
 # Cross ’em's iOS kit: an Xcode project that builds the game as one app for
 # iPhone and iPad, which someone opens in Xcode, signs with their own Apple
 # ID, and runs on a device (PACKAGING.md, "iPhone and iPad").
