@@ -25,18 +25,25 @@ Johnson). Every state below has a shape or motion cue too.
 | Pool letter available | raised tile with its edge showing | ivory tile |
 | Pool letter selected | lifted higher (bigger, spread shadow, gentle bob), thick ring, a small caret beneath | ink ring |
 | Empty pool slot | a sunken dashed socket with an inner shadow, no tile | paper shade |
+| Empty board (until a letter is picked up) | the same sunken socket where the first letter will go | paper shade |
 | Placed letter | tile flat on the grid, thin edge | ivory tile |
 | Target (only while a letter is selected) | dashed rounded square with a small "+", fading in and breathing | accent (blue-teal) |
 | Problem letter | diagonal hatching across the tile, an outline and a folded corner, a small shake as the check finds it | vermilion |
 | Finished letter (after the game) | inverted tile: dark face, light letter | ink blue |
-| Unused letter (after a loss) | faded tile with a dotted outline | muted |
+| Unused letter (after a loss) | a ghost of a tile (the unused face) with a dotted outline and a muted letter | muted |
 | Won | heading "Solved!", tiles flip in a diagonal wave, square confetti | green heading |
 | Lost | heading "Game over", tiles settle quietly, nothing celebrates | ink heading |
 
 Appearance follows the system (`Lota::Window.system_theme`, re-read on
-`themechanged`) unless the player picks Light or Dark with the header's
-appearance button, which cycles System, Light, Dark (a half-filled disc, a
-sun, a moon). Light is "morning paper"; dark is "night edition": deep ink-blue
+`themechanged`) unless the player flips it with the header's appearance
+button: a filled sun on the light page, a crescent moon on the dark one.
+A tap flips the page shown, light to dark or back. If the page it lands on
+is the one the system shows, the setting goes back to following the
+system, so the game keeps following it (at sunset, say); only a page the
+system doesn't show is kept as a choice, and a system that can't say
+(`:unknown`) keeps the page asked for (`Appearance.flip`, unit tested).
+An earlier three-way cycle (System, Light, Dark) left a player who once
+picked Light stuck there after their computer went dark. Light is "morning paper"; dark is "night edition": deep ink-blue
 page, the same ivory tiles (tiles are objects, so they keep their material),
 lighter ink.
 
@@ -54,6 +61,7 @@ lighter ink.
 | scrim | ink at 42% | near-black at 62% | behind a sheet |
 | shadow | brown at 16% | black at 40% | under tiles and cards |
 | tile face / edge / letter | `#FBF4E3` / `#D3BF97` / `#1F1A14` | `#E9DFC8` / `#A8956F` / `#1F1A14` | tiles |
+| unused face | tile face at 50% | tile face at 12% | letters left over after a loss (half strength turned into a grey slab on the night page) |
 | target | `#1F7A8C` | `#5CC4D6` | targets, the wordmark's apostrophe, the on switch |
 | problem | `#C8432B` | `#FF7A5C` | problem marks and reasons, the armed Give up |
 | finished face / edge / letter | `#24427F` / `#172C57` / `#FBF4E3` | `#4A73C9` / `#2F4F94` / `#FBF4E3` | finished tiles |
@@ -118,9 +126,29 @@ Designed in points, from a phone up:
   On the narrowest phones the puzzle number gives way to the wordmark.
 - Pool tiles are at least 44 pt (≈ 7.8 mm on an iPhone) and grow to 64 pt;
   controls are 48 pt tall.
+- **Big screens** draw the whole design larger rather than showing more
+  empty paper. Where the window is wider and taller than 1200 × 820 pt,
+  `Units.for_window` multiplies the screen's density by the window's
+  excess, rounded down to an eighth and at most 1.5×: a 1920 × 1080
+  desktop draws at 1.25×, a 1366 × 1024 iPad on its side at 1.125×; phones,
+  upright tablets and 1280 × 800 laptops are unchanged. It is one scale on
+  the point-to-pixel conversion, so every size still rounds to whole pixels
+  and type is still rasterised at its exact size; nothing is resampled, and
+  nothing drops below its smallest size in points (44 pt cells and tiles).
+  Eighths keep the sizes few, so resizing a window rebuilds fonts rarely.
+- **Very wide windows** set the game on a page: where the window is wider
+  than 1180 pt plus a 64 pt margin either side, everything is laid out on a
+  1180 pt sheet of the dotted paper, centred and 16 pt from the top and
+  bottom, lying on a darker desk (page shade) with a soft shadow and a
+  hairline edge. Before, the board sat in the middle of a huge left area
+  and the column hugged the window's far edge, so the halves never met; on
+  the page they read as one spread. A window too short to fit the game on
+  the page gives up the page before the board.
 - **After the game** the results take the status line's and the controls'
   place: the heading and what was good, the four statistics, the clock to the
-  next puzzle and "Copy result". The pool stays only while letters are left
+  next puzzle and "Copy result". The statistics share the measure of the
+  row under them (at most 520 pt), so on an upright tablet they don't hang
+  out past it. The pool stays only while letters are left
   in it (after a loss); after a win its empty sockets give their room to the
   board.
 - **The board** fits itself to its letters plus one ring of targets, with
@@ -203,11 +231,21 @@ in a smaller size rather than being cut off.
 
 - **Play**, the only real screen.
 - **How to play**, a sheet over Play: shown at first launch until dismissed,
-  reopened by the "?" in the header (or the ? key). It covers every rule,
-  the keyboard on a computer, the Calm motion switch, the word list's credit
-  word for word, and buttons to Credits and to Play.
-- **Credits**, a scrolling sheet over How to play: Cross ’em itself, Lota and
-  LÖVE, the full `wordlist-COPYRIGHT.txt`, and both fonts' licenses, each
+  reopened by the "?" in the header (or the ? key). Under its first
+  sentence is a small example board, a patch of the dotted paper with WORD
+  across and ROW down from its R in real tiles and a glowing square beside
+  them, captioned "WORD and ROW cross at the R. The glowing square is a
+  place the next letter can go." The picture teaches "crossword style" and
+  "glowing square" before the rules say them. Then every rule, the keyboard
+  on a computer, the Calm motion switch, and buttons to Credits and to
+  Play. A Credits button also sits in its title bar beside the ×, so the
+  Credits are two taps from the header without scrolling; on the narrowest
+  phones the title steps down a size to make room for it.
+- **Credits**, a scrolling sheet over How to play. It opens with the word
+  list: its credit word for word ("Word list based on SCOWL by Kevin
+  Atkinson and the sources it credits, …"), then the full
+  `wordlist-COPYRIGHT.txt`; then Cross ’em itself, Lota and LÖVE, and both
+  fonts' licenses, each
   read from the files that ship with the game. The license texts are shown
   with every word as written, their hard-wrapped paragraphs reflowed to the
   sheet's width (`Presentation::Reflow`); a line of dashes becomes a rule.
@@ -218,6 +256,20 @@ in a smaller size rather than being cut off.
   next puzzle (09:00 UTC, for everyone at once), "Copy result", and, once the countdown reaches zero,
   "Play No. N", which opens the new day's puzzle without restarting.
 
-A sheet closes with its ×, a tap outside it, or Esc. On a computer the
+A sheet closes with its ×, a tap outside it, or Esc.
+
+## The icon (`script/make_icon.rb`, CC0)
+
+The game's own materials on a rounded square of the finished tiles' ink
+blue: ivory tiles with their darker lower edge, and ink letters in Zilla
+Slab Bold, filled from the font file that ships with the game by a small
+TrueType reader and scanline filler in the script (pure Ruby, nothing to
+install). From 128 px up the tiles spell a tiny crossword, CROSS across and
+REM down from its R, so it reads "Cross … em", on a few faint graph-paper
+dots. Seven letters can't be read smaller, so below 128 px it shows three
+bigger tiles meeting at a corner, the first lettered C from 32 px up, and
+at 16 and 24 px only the tiles. Each size is drawn at its own size, never
+scaled. The first icon, five blank tiles in a "+", read as a first-aid
+sign. On a computer the
 pointer becomes a hand over anything a click would change, and a four-way
 arrow over a board that pans.
