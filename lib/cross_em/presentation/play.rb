@@ -1,0 +1,354 @@
+# frozen_string_literal: true
+
+module CrossEm
+  module Presentation
+    # The Play screen's state and what a tap, a drag, a scroll or a key
+    # does to it. It owns no window: the shell tells it the window's size
+    # and hands it the player's pointers and keys, and it changes the
+    # Game, opens and closes the sheets, and asks its +host+ for whatever
+    # reaches outside the screen: sounds, the clipboard, the settings
+    # file, the appearance, the next day's game.
+    #
+    # The rules change on the tap. Nothing here waits for an animation.
+    class Play
+      M = Look::METRICS
+      T = Look::TIMING
+
+      attr_reader :game, :settings, :gesture, :time, :units
+
+      # +host+ answers sound(name), copy(text), settings_changed(settings),
+      # next_day, dark? and read(path). +measure+ wraps text for the sheets (SheetLayout).
+      def initialize(game:, session:, dictionary:, settings:, host:, measure:, clock: Clock.real, touch: false)
+        @session, @dictionary, @settings, @host, @measure, @clock, @touch =
+          session, dictionary, settings, host, measure, clock, touch
+        @time = 0.0
+        @sheets = []
+        @layouts = {}
+        @sheet_layouts = {}
+        self.game = game
+      end
+
+      def game=(game)
+        @game = game
+        @view = nil
+        @armed_at = @copied_at = @stats = nil
+        game.subscribe { changed(it) }
+      end
+
+      def resize(width:, height:, units:, safe: nil)
+        @width, @height, @safe, @units = width, height, safe, units
+        @layouts.clear
+        @sheet_layouts.clear
+        @sheets.map! { it.with(scroll: 0) }
+        @view = nil
+      end
+
+      def update(seconds) = @time += seconds
+
+      # --- What the painters read ---
+
+      def layout
+        over = game.over?
+        pool = !over || !game.pool.empty?
+        @layouts[[over, pool]] ||= Layout.for(width: @width, height: @height, safe: @safe, units:, over:, pool:)
+      end
+
+      # The board's view, refitted whenever the board's room changes.
+      def view
+        refit if @view.nil? || @view.viewport != layout.board
+        @view
+      end
+
+      def sheet = @sheets.last
+      def sheet? = !@sheets.empty?
+
+      def sheet_layout
+        kind = sheet&.kind or return
+        @sheet_layouts[kind] ||= SheetLayout.build(blocks: blocks(kind), safe: safe_rect, units:, measure: @measure)
+      end
+
+      def status = Copy.status(game, @dictionary)
+
+      def stats = @stats ||= @session.stats(game.day)
+
+      # The clock to the next puzzle, which is the next UTC midnight after
+      # the day being played.
+      def countdown = Countdown.between(@clock.now, game.day.ends_at)
+
+      # The day a finished game makes way for, once its clock runs out.
+      def next_day = countdown.done? ? @clock.today : nil
+
+      def armed? = @armed_at && @time - @armed_at < T.give_up_confirm
+      def copied? = @copied_at && @time - @copied_at < T.copied
+
+      def enabled?(control)
+        case control
+        when :shuffle, :give_up then game.playing?
+        when :reset then game.playing? && !game.board.empty?
+        else true
+        end
+      end
+
+      def label(control)
+        case control
+        when :shuffle then Copy::SHUFFLE
+        when :reset then Copy::RESET
+        when :give_up then armed? ? Copy::CONFIRM_GIVE_UP : Copy::GIVE_UP
+        when :copy then copied? ? Copy::COPIED : Copy::COPY_RESULT
+        end
+      end
+
+      # --- Pointers ---
+
+      def pointer(event)
+        case event.phase
+        when :pressed then press(event)
+        when :moved then move(event)
+        when :released then release(event)
+        end
+      end
+
+      def press(pointer)
+        return if @gesture
+
+        target = target_at(pointer.x, pointer.y)
+        @gesture = Gesture.start(pointer, target)
+        pick(target[1]) if target[0] == :slot
+      end
+
+      def move(pointer)
+        return unless @gesture&.id == pointer.id
+
+        before = @gesture
+        @gesture = before.moved(pointer.x, pointer.y, units.px(M.drag))
+        return unless @gesture.dragging
+
+        from_x, from_y = before.dragging ? [before.x, before.y] : [before.start_x, before.start_y]
+        drag(@gesture.target, pointer.x - from_x, pointer.y - from_y)
+      end
+
+      def release(pointer)
+        return unless @gesture&.id == pointer.id
+
+        gesture = @gesture.moved(pointer.x, pointer.y, units.px(M.drag))
+        @gesture = nil
+        tapped(gesture) if gesture.tap?
+      end
+
+      # A mouse wheel or a trackpad's two fingers: scrolls a sheet, or pans
+      # the board.
+      def wheel(dx, dy)
+        step = units.px(40)
+        if sheet? then scroll_sheet(-dy * step)
+        else @view = view.pan(-dx * step, dy * step)
+        end
+      end
+
+      # --- Keys ---
+
+      # Typed text: a letter picks up that letter (again, the next one of
+      # the same letter, or puts it down), and "?" opens How to play.
+      def text(text)
+        return toggle_help if text == "?"
+        return if sheet?
+
+        letter = text.upcase
+        pick_letter(letter) if letter.match?(/\A[A-Z]\z/)
+      end
+
+      def key(key, command: false)
+        case key
+        when :escape then escape
+        when :c then copy if command && game.over?
+        when :return, :kpenter then sheet? ? close_sheet : (next_day && @host.next_day)
+        when :space then press_button(:shuffle) unless sheet?
+        when :up, :pageup then scroll_sheet(-units.px(key == :up ? 40 : 300)) if sheet?
+        when :down, :pagedown then scroll_sheet(units.px(key == :down ? 40 : 300)) if sheet?
+        end
+      end
+
+      # --- Actions, by name, as the buttons and a Script call them ---
+
+      def pick(index)
+        disarm
+        game.tap_slot(index)
+      end
+
+      def pick_letter(letter)
+        slots = game.pool.slots.each_index.select { game.pool[it] == letter }
+        return if slots.empty?
+
+        current = slots.index(game.selected)
+        if current.nil? then pick(slots.first)
+        elsif slots.size == 1 then pick(game.selected) # puts it down
+        else pick(slots[(current + 1) % slots.size])
+        end
+      end
+
+      def tap_cell(position)
+        disarm
+        game.tap_cell(position) if position
+      end
+
+      def press_button(name)
+        @armed_at = nil unless name == :give_up
+        case name
+        when :help then open(:help)
+        when :theme then change(appearance: Appearance.next(@settings.appearance))
+        when :sound then change(muted: !@settings.muted)
+        when :shuffle then game.shuffle
+        when :reset then game.reset
+        when :give_up then give_up
+        when :copy then copy
+        when :next then @host.next_day if next_day
+        end
+      end
+
+      # The first press asks to confirm; a second within a few seconds
+      # gives up.
+      def give_up(confirmed: false)
+        return unless game.playing?
+
+        if armed? || confirmed
+          @armed_at = nil
+          game.give_up
+        else
+          @armed_at = @time
+          @host.sound(:button)
+        end
+      end
+
+      def copy
+        return unless game.over?
+
+        @host.copy(ShareText.for(game, dark: @host.dark?).to_s)
+        @copied_at = @time
+        @host.sound(:copied)
+      end
+
+      def open(kind)
+        @armed_at = nil
+        return if sheet&.kind == kind
+
+        @sheets << Sheet.open(kind)
+        @host.sound(:button)
+      end
+
+      # Closes the sheet on top. Closing How to play counts as having read
+      # it, so it does not open by itself again.
+      def close_sheet
+        closed = @sheets.pop or return
+        settle(@settings.with(instructions_seen: true)) if closed.kind == :help && !@settings.instructions_seen
+        @host.sound(:button)
+      end
+
+      def toggle(setting)
+        change(setting => !@settings.public_send(setting)) if setting == :calm
+      end
+
+      # Changes a setting and tells the host, which applies and saves it.
+      def change(**changes)
+        settle(@settings.with(**changes))
+        @host.sound(:button)
+      end
+
+      def scroll_sheet(by)
+        return unless sheet?
+
+        @sheets[-1] = sheet.scrolled(by.round, sheet_layout)
+      end
+
+      def pan(dx, dy) = @view = view.pan(dx, dy)
+
+      private
+
+      def safe_rect = @safe || Rect.new(x: 0, y: 0, width: @width, height: @height)
+
+      def blocks(kind) = kind == :help ? Copy.instructions(touch: @touch) : Copy.credits(@host.method(:read))
+
+      def settle(settings)
+        @settings = settings
+        @host.settings_changed(settings)
+      end
+
+      def disarm = @armed_at = nil
+
+      def escape
+        if sheet? then close_sheet
+        elsif game.selected then pick(game.selected)
+        end
+      end
+
+      def toggle_help = sheet&.kind == :help ? close_sheet : open(:help)
+
+      # What is under (+x+, +y+): a sheet's part while one is open, else a
+      # button, a pool slot, the board, or nothing.
+      def target_at(x, y)
+        return sheet_target_at(x, y) if sheet?
+
+        layout.header_buttons.each { |name, rect| return [:button, name] if rect.contains?(x, y) }
+        layout.controls&.each { |name, rect| return [:button, name] if rect.contains?(x, y) }
+        if (results = layout.results)
+          return [:button, :copy] if results.copy.contains?(x, y)
+          return [:button, :next] if results.countdown.contains?(x, y) && next_day
+        end
+        layout.pool.each_with_index { |rect, i| return [:slot, i] if rect.contains?(x, y) }
+        return [:board] if layout.board.contains?(x, y)
+
+        [:none]
+      end
+
+      def sheet_target_at(x, y)
+        sheet = sheet_layout
+        if sheet.close.contains?(x, y) then [:sheet, :close]
+        elsif sheet.body.contains?(x, y) then [:sheet, :body]
+        elsif sheet.card.contains?(x, y) then [:sheet, :card]
+        else [:sheet, :scrim]
+        end
+      end
+
+      def drag(target, dx, dy)
+        case target
+        in [:board] then @view = view.pan(dx, dy)
+        in [:sheet, _] then scroll_sheet(-dy)
+        else nil
+        end
+      end
+
+      def tapped(gesture)
+        case gesture.target
+        in [:board] then tap_cell(view.cell_at(gesture.start_x, gesture.start_y))
+        in [:button, name] then press_button(name) if target_at(gesture.x, gesture.y) == gesture.target
+        in [:sheet, :close | :scrim] then close_sheet
+        in [:sheet, :body]
+          control = sheet_layout.control_at(gesture.x, gesture.y, sheet.scroll)
+          sheet_control(control.id) if control
+        else nil
+        end
+      end
+
+      def sheet_control(id)
+        case id
+        when :close then close_sheet
+        when :credits then open(:credits)
+        else toggle(id)
+        end
+      end
+
+      # After every move the board is framed again, keeping the letter just
+      # placed in view.
+      def changed(event)
+        case event
+        when Events::Placed then refit(focus: event.position)
+        when Events::Returned, Events::Reset then refit
+        when Events::Won, Events::Lost then @stats = nil
+        end
+      end
+
+      def refit(focus: nil)
+        @view = BoardView.fit(viewport: layout.board, content: BoardView.content_of(game.board), units:, focus:,
+                              previous: @view)
+      end
+    end
+  end
+end
