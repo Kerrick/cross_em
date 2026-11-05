@@ -31,6 +31,10 @@ Johnson). Every state below has a shape or motion cue too.
 | Problem letter | diagonal hatching across the tile, an outline and a folded corner, a small shake as the check finds it | vermilion |
 | Finished letter (after the game) | inverted tile: dark face, light letter | ink blue |
 | Unused letter (after a loss) | a ghost of a tile (the unused face) with a dotted outline and a muted letter | muted |
+| Letter typed, not placed | a ghost tile: faint face, dashed outline, ink letter, in a strip where the status line was | ink, muted outline |
+| Pool letter a typed word would use | a short bar under its slot | muted ink |
+| A place a typed word fits (several) | the word's cells outlined, numbered on its first corner; the one shown has a solid outline, a filled number and its new letters as ghost tiles | accent |
+| Practice / looking back | a tag by the puzzle number, "Practice · doesn't count" or "Your board · read-only", for as long as the game is shown | ink outline |
 | Won | heading "Solved!", tiles flip in a diagonal wave, square confetti | green heading |
 | Lost | heading "Game over", tiles settle quietly, nothing celebrates | ink heading |
 
@@ -108,8 +112,8 @@ pixels.
 
 Designed in points, from a phone up:
 
-- **Portrait (phone, narrow window):** header (wordmark, puzzle number, three
-  44 pt icon buttons) at the top; the board fills the middle, edge to edge;
+- **Portrait (phone, narrow window):** header (wordmark, puzzle number, four
+  44 pt icon buttons: Past puzzles, How to play, appearance, sound) at the top; the board fills the middle, edge to edge;
   one status line; the pool as two rows of six; the controls row (Shuffle,
   Reset, Give up) at the bottom, in thumb reach. Everything inside the safe
   area.
@@ -146,7 +150,9 @@ Designed in points, from a phone up:
   the page gives up the page before the board.
 - **After the game** the results take the status line's and the controls'
   place: the heading and what was good, the four statistics, the clock to the
-  next puzzle and "Copy result". The statistics share the measure of the
+  next puzzle and "Copy result", and under them a row with "Play again" and
+  "Past puzzles". When even the smallest pool leaves no room (a phone on its
+  side), the two rows share one row of four. The statistics share the measure of the
   row under them (at most 520 pt), so on an upright tablet they don't hang
   out past it. The pool stays only while letters are left
   in it (after a loss); after a win its empty sockets give their room to the
@@ -187,6 +193,11 @@ Motion hears each event after the fact and remembers where a tile came from.
 - The results fade in as the board settles.
 - The board's camera eases (250 ms) whenever its fit changes, even when the
   board's room changes at the end of the game. A drag takes over at once.
+
+- A typed word's letters leave the pool one after another, 70 ms apart,
+  each a tap's flight and clack, so the clacks climb the scale as a little
+  run; a check its last letter sets off waits for that letter, as after a
+  tap. A word taken back with Backspace returns staggered as a reset does.
 
 A player can turn motion down in How to play ("Calm motion"): lifts, flights,
 the sweep and the wave become 80 ms fades, nothing bobs or breathes, the camera
@@ -232,7 +243,15 @@ muted, and without an audio device.
 
 The status line always says what the player can do next, in their state:
 
-- Nothing selected, the board empty: "Tap a letter to pick it up."
+- Nothing selected, the board empty: "Tap a letter to pick it up.", and on a
+  computer, under it, "Or type a word and press Enter."
+- Typing: the draft as ghost tiles, and under it "Enter places it. Esc
+  clears it." A word that fits nowhere keeps its draft and says why, in the
+  problem color: "CRAB needs a B that isn't in the pool.", "CRABB needs more
+  Bs than the pool has.", "CAT is already on the board.", "CRAB doesn't fit
+  anywhere on the board."
+- Choosing: "CRAB fits 3 places. Showing 1." and "Tab: next · 1–3: pick ·
+  Enter: place · Esc: back".
 - Nothing selected, letters placed: the same, and under it "9 letters left.
   Tap a placed one to send it back."
 - A letter selected: "Now tap a glowing square to place it."
@@ -275,12 +294,101 @@ in a smaller size rather than being cut off.
   sheet's width (`Presentation::Reflow`); a line of dashes becomes a rule.
   The body fades at an edge with more beyond it, and a thin bar shows where
   it is.
+- **Past puzzles**, a sheet from the calendar in the header or the results'
+  "Past puzzles": every puzzle from today back to No. 0, newest first, under
+  a heading for each month that stays pinned while its days scroll. Each
+  day shows its number and date and how the player did, in a word and a
+  glyph, never by color alone: "Solved" (a filled disc with a tick, "All 12
+  crossed"), "Game over" (a ring with a cross, "7 of 12 crossed"), "In
+  progress" (a half-filled ring, "5 letters placed"), "Not played" (a faint
+  ring with a dash). Only the rows in view are drawn (`ArchiveList`).
 - **Results** replace the controls when the game is over: the heading, the
   four statistics (played, win %, streak, best streak), the countdown to the
   next puzzle (09:00 UTC, for everyone at once), "Copy result", and, once the countdown reaches zero,
   "Play No. N", which opens the new day's puzzle without restarting.
 
 A sheet closes with its ×, a tap outside it, or Esc.
+
+## Typing a word (`CrossEm::WordFit`, `Presentation::Typing`)
+
+The first keyboard mode had a typed letter pick up a tile, so a word took a
+letter key and a click on a square for every letter: the mouse play,
+slower. Players think in words, so a keyboard now takes a whole word
+(Saffer: the trigger should match the player's intent, not the system's
+steps).
+
+- **Drafting.** Letters build a draft, shown where the status line was as
+  ghost tiles with a blinking caret (still in Calm motion), with the pool
+  letters it would use marked by a bar. Backspace edits it; Esc clears it.
+  At most twelve letters, since no word can use more. Typing puts down a
+  letter picked up with a tap, so only one thing is ever in hand.
+- **Fitting is geometry only.** The rules give no feedback while letters
+  wait in the pool, so the search never asks the word list or the Referee:
+  a nonsense word fits wherever its letters do, and placements are never
+  ranked by whether the words they make are real. A word fits a run across
+  or down whose cells each hold that letter already or are empty and filled
+  from the pool (counted letter by letter), adding at least one letter,
+  with empty cells just before and after (so the run reads exactly the
+  word: CAT then CATS adds just the S, and CAT never fits inside CATS),
+  touching the board by crossing or lying beside it. An empty board takes
+  it across from the origin. Placements that cross a letter are the only
+  ones offered when there are any (they are almost always what was meant);
+  otherwise those that lie beside. They come in reading order of their
+  first cell, across before down, so the numbers are the same each time.
+- **Choosing.** One place, and the word goes there at once. Several, and
+  the board shows them numbered, the current one with its new letters as
+  ghost tiles in the accent's outline, the rest outlined faintly; the
+  camera frames it. Tab and the arrows cycle, 1–9 place at once, Enter or
+  Space places the one shown, Esc goes back to the draft. Past nine (a
+  word with nothing to cross can lie beside a board in two dozen places)
+  only the one shown is drawn, since nine outlines already tangle and
+  digits can't reach the rest; Tab still can. None, and the reason is
+  given and the draft kept to edit (Juul: a failure the player can see the
+  cause of feels fair).
+- **Through the rules.** Each new letter goes through `Game#place_letter`,
+  a tap on its slot and then its square in one step, from the first slot
+  holding that letter, so saving, events, the check when all twelve are
+  down, the win and every animation are a tap's.
+- **Taking back.** Backspace with nothing typed takes back the last typed
+  word's own letters (never the ones it crossed), then the word before;
+  with no typed word left, the letter placed last, as before.
+- **Keys that meant something else.** Space still shuffles, but only with
+  nothing typed and nothing being chosen; Enter still opens the next
+  puzzle, but only with nothing typed. Letters no longer pick up tiles.
+
+Touch and mouse play are unchanged.
+
+## Playing again and the archive (`Presentation::ArchiveList`, `Session#practice`)
+
+The first play of each day is the record; everything else is for fun and
+never counts (Juul: a practice run is safe to fail because it costs
+nothing).
+
+- **One official game, at most one other.** Play holds the day's official
+  game (the one `Session#open` saves) and shows either it, a practice game
+  (`Session#practice`: a fresh pool and empty board, never saved, in
+  memory only) or a look back at a finished day (`Session#review`: the
+  record restored, check marks and all; it is over, so nothing can change
+  it, and it is never saved). Moving between them never touches the
+  official game.
+- **Labelled for as long as it is shown.** A practice game or a look back
+  carries a tag by its number in the header. Its results show no
+  statistics but a line saying what it is ("A practice game. It isn't saved
+  or counted."), and "Back to today" takes the place of "Copy result", so a
+  practice result is never shared as a real one (Ctrl/Cmd+C does nothing
+  there either).
+- **No "see the solution".** A day has no single solution; "your board" is
+  the one the player finished. Opening a day from Past puzzles shows that
+  board read-only with "Play it again"; a day never finished opens straight
+  into practice, and never gets a record; today goes back to the official
+  game (or opens today's, if the official game is an unfinished earlier
+  day).
+- **Getting back.** The results of practice and of a look back offer "Back
+  to today"; during a practice game, Past puzzles' top row (today) does.
+- **The keyboard in the list.** Arrows move a ring from day to day (the
+  first press lands on the top day in view), Page Up/Down a page, Home and
+  End the newest and oldest; Enter opens the day. The list scrolls to keep
+  the ring clear of the pinned month heading.
 
 ## The icon (`script/make_icon.rb`, CC0)
 
