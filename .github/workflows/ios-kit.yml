@@ -5,29 +5,30 @@
 # iPhone and iPad, which someone opens in Xcode, signs with their own Apple
 # ID, and runs on a device (PACKAGING.md, "iPhone and iPad").
 #
-# Adapted from Lota's generic iOS kit workflow, .github/workflows/ios-kit.yml
-# at setdef/Lota commit 5e68d3d (branch experiment/ios-kit-1; its guide is
-# doc/contributors/ios-kit.md there), under the same license. Lota's CI
-# never builds a game's app, so Cross ’em builds its own here. The
-# workflow checks out Lota at that pinned commit into lota/ and runs Lota's
-# ipad/ scripts and rake ios:sdl3 from there, with this repository's
-# checkout, in game/, as the game. What changed from Lota's: the game is
-# this repository rather than a dispatch input, its settings are fixed
-# below, Lota comes from its own checkout rather than the workflow's
-# repository, the Simulator runs use ios/simulator.rb (a copy of Lota's
-# ipad/simulator.rb at that commit that checks more patiently whether the
-# app still runs), the kit's README.txt is ios/README.txt (a copy of Lota's
-# ipad/README.txt at that commit that tells how to get this repository's
-# kit), the touch job adds a CI-only probe (ios/touch_probe.rb) that prints
-# where each tap landed, and a v0.* tag attaches the kit to that tag's
-# prerelease.
+# Adapted from Lota's experimental, unsupported iOS kit workflow,
+# .github/workflows/ios-kit.yml at setdef/Lota commit 5e68d3d (branch
+# experiment/ios-kit-1; its guide is doc/contributors/ios-kit.md there),
+# under the same license. Lota's CI never builds a game's app, so Cross ’em
+# builds its own here, keeping that workflow's three jobs: the project,
+# built and zipped (ios-kit); a fresh runner that builds that zip, checks
+# the built app, and runs it in portrait in iPad and iPhone Simulators
+# (ios-kit-simulator); and a third that runs it in landscape, then taps and
+# turns the screen (ios-kit-touch).
 #
-# Lota's iOS kit is an experiment, and its scripts are unsupported. The
-# three jobs are Lota's: the project, built and zipped (ios-kit); a fresh
-# runner that builds that zip, checks the built app, and runs it in
-# portrait in iPad and iPhone Simulators (ios-kit-simulator); and a third
-# that runs it in landscape, then taps and turns the screen
-# (ios-kit-touch).
+# The app is built from released code only: Lota's v0.1.3 tag (its gem,
+# vendor/love, and rake ios:sdl3), Fledge v0.5.1's fledge build ios, and
+# ios/, Cross ’em's copies of the experiment's project scripts (prepare.rb,
+# icon.rb, the SDL host in host/ios, and the kit's text files, README.txt
+# changed to say where this repository's kit is). Only the two Simulator
+# jobs take anything from the experiment branch at 5e68d3d: check_app.rb and
+# the UI tests in ipad/uitests, which never reach the kit. They run
+# ios/simulator.rb, a copy of the experiment's that checks more patiently
+# whether the app still runs, and the touch job adds a CI-only probe
+# (ios/touch_probe.rb) that prints where each tap landed. A v0.* tag also
+# attaches the kit to that tag's prerelease.
+#
+# Lota is a path gem only inside the project job's generated project;
+# this repository's Gemfile keeps Lota 0.1.3 from vendor/cache.
 name: iOS kit
 
 on:
@@ -50,11 +51,12 @@ defaults:
 
 env:
   MISE_DISABLE_TOOLS: ruby,rust
-  FLEDGE_REF: v0.5.0
-  # Lota's iOS kit tooling, pinned: the tip of experiment/ios-kit-1.
+  FLEDGE_REF: v0.5.1
   LOTA_REPOSITORY: setdef/Lota
-  LOTA_SHA: 5e68d3d9d79693b26760d62f1d0f972bc0f6ed7a
-  LOTA_REF: experiment/ios-kit-1
+  # The released Lota the app is built from.
+  LOTA_REF: v0.1.3
+  # The experiment's Simulator checks, pinned: the tip of experiment/ios-kit-1.
+  LOTA_KIT_SHA: 5e68d3d9d79693b26760d62f1d0f972bc0f6ed7a
   KIT_GAME_REPOSITORY: ${{ github.repository }}
   KIT_GAME_REF: ${{ github.ref_name }}
   KIT_GAME_PATH: "."
@@ -105,10 +107,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ env.LOTA_REPOSITORY }}
-          ref: ${{ env.LOTA_SHA }}
+          ref: ${{ env.LOTA_REF }}
           persist-credentials: false
-          submodules: true
           path: lota
+
+      - name: Fetch the submodules Lota's iOS build needs
+        working-directory: lota
+        run: git submodule update --init --depth 1 vendor/love vendor/love-apple-dependencies
 
       - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
         with:
@@ -166,10 +171,10 @@ jobs:
           git -C "$gem" -c user.name=ios-kit -c user.email=ios-kit@example.com commit --quiet -m "Lota's gem files"
           du -sh "$gem"
           export KIT_LOTA_GEM=$gem KIT_FLEDGE_REF=$FLEDGE_REF KIT_PROJECT=$RUNNER_TEMP/project KIT_JSON=$RUNNER_TEMP/kit/kit.json
-          export KIT_LOTA_REPOSITORY=$LOTA_REPOSITORY KIT_LOTA_SHA=$LOTA_SHA KIT_LOTA_REF=$LOTA_REF KIT_RUN_ID=$GITHUB_RUN_ID
+          export KIT_LOTA_REPOSITORY=$LOTA_REPOSITORY KIT_LOTA_SHA=$(git rev-parse HEAD) KIT_LOTA_REF=$LOTA_REF KIT_RUN_ID=$GITHUB_RUN_ID
           export KIT_RUN_URL=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
           mkdir -p "$RUNNER_TEMP/kit"
-          ruby ipad/prepare.rb layout
+          ruby "$GITHUB_WORKSPACE/game/ios/prepare.rb" layout
           echo "APP_NAME=$(ruby -rjson -e 'print JSON.parse(File.read(ARGV[0]))["app_name"]' "$KIT_JSON")" >> "$GITHUB_ENV"
           cd "$KIT_PROJECT"
           cat Gemfile fledge.yml
@@ -204,10 +209,7 @@ jobs:
           export KIT_JSON=$RUNNER_TEMP/kit/kit.json
           export KIT_XCODE="$(xcodebuild -version | head -1)"
           export KIT_BUILT_WITH="Built on $(sw_vers -productName) $(sw_vers -productVersion) with $(xcodebuild -version | tr '\n' ' ')and XcodeGen $(xcodegen --version | sed 's/Version: //')"
-          # The kit's README.txt is Cross ’em's copy of Lota's
-          # ipad/README.txt, which says where this kit comes from.
-          cp "$GITHUB_WORKSPACE/game/ios/README.txt" ipad/README.txt
-          ruby ipad/prepare.rb finish "$project"
+          ruby "$GITHUB_WORKSPACE/game/ios/prepare.rb" finish "$project"
           du -sh "$project"/*
           find "$project/fledge" -maxdepth 3 | sort | head -40
 
@@ -233,11 +235,12 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 150
     steps:
-      # Only the kit's harness from Lota; no Lota gem, no bundle, no submodules.
+      # Only the experiment's Simulator checks from Lota; no Lota gem, no
+      # bundle, no submodules.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ env.LOTA_REPOSITORY }}
-          ref: ${{ env.LOTA_SHA }}
+          ref: ${{ env.LOTA_KIT_SHA }}
           persist-credentials: false
           sparse-checkout: ipad
           path: lota
@@ -336,7 +339,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ env.LOTA_REPOSITORY }}
-          ref: ${{ env.LOTA_SHA }}
+          ref: ${{ env.LOTA_KIT_SHA }}
           persist-credentials: false
           sparse-checkout: ipad
           path: lota
