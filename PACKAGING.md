@@ -119,7 +119,7 @@ The files appear in `dist/`, which git ignores. On Windows, Fledge's runtime inc
 
 ## iPhone and iPad
 
-`lota fuse` doesn't build for iOS, and Apple allows no app that runs games it downloads, so an iPhone or iPad build is an Xcode project, the "iOS kit", that whoever plays it opens in Xcode, signs with their own Apple ID, and runs on their device. The [iOS kit workflow](.github/workflows/ios-kit.yml) makes it with Lota's iOS kit tooling, which is experimental and unsupported: it checks out Lota at a pinned commit of its `experiment/ios-kit-1` branch (`5e68d3d`) and runs that commit's `ipad/` scripts and `rake ios:sdl3`, with this repository as the game. It builds SDL3 for iOS, then has [Fledge](https://github.com/setdef/Fledge) 0.5.0's `fledge build ios` write the project around `bin/cross_em`, the game's launcher. Lota's own CI never builds a game's app, so this workflow runs here.
+`lota fuse` doesn't build for iOS, and Apple allows no app that runs games it downloads, so an iPhone or iPad build is an Xcode project, the "iOS kit", that whoever plays it opens in Xcode, signs with their own Apple ID, and runs on their device. The [iOS kit workflow](.github/workflows/ios-kit.yml) makes it from released code: it checks out Lota's `v0.1.3` tag, builds SDL3 for iOS with Lota's `rake ios:sdl3`, and has [Fledge](https://github.com/setdef/Fledge) v0.5.1's `fledge build ios` write the project around `bin/cross_em`, the game's launcher, with Lota 0.1.3 compiled in. The workflow, the project layout (`ios/prepare.rb`) and the app's SDL host (`ios/host`) are adapted from Lota's iOS kit experiment (its `experiment/ios-kit-1` branch at `5e68d3d`), which is unsupported, so Cross ’em keeps its own copies. Lota's own CI never builds a game's app, so this workflow runs here. It is a stopgap, kept small, until Lota ships its own phone build, which is to make the iOS project and provide the host.
 
 The app is `Cross ’em` under its icon (`icons/icon-1024.png`), with the identifier `com.kerricklong.CrossEm` and the Xcode target `CrossEm`. It turns to portrait and landscape on an iPhone and to all four orientations on an iPad, hides the status bar, and uses the `ambient` audio session, so it mixes with other apps' music and the silent switch mutes it.
 
@@ -141,17 +141,28 @@ You need a Mac with Xcode (the version `BUILD-INFO.txt` in the kit names, or new
 
 A free Apple ID signs the app for 7 days. After that it won't launch until you connect the device and press Run again, which keeps the game's saves. To play a newer build, get the newer kit and repeat steps 1, 2 and 4 with the same identifier.
 
+From the command line instead, with Apple's own tools (the device paired and in Developer Mode, and your Apple ID added to Xcode once), from the unpacked `CrossEm-ios` folder, with your team's ID from Xcode's Accounts settings or your membership page:
+
+```console
+$ xcodebuild -project CrossEm.xcodeproj -scheme CrossEm -configuration Debug \
+    -destination generic/platform=iOS -derivedDataPath build -allowProvisioningUpdates \
+    DEVELOPMENT_TEAM=YOURTEAMID PRODUCT_BUNDLE_IDENTIFIER=com.yourname.CrossEm build
+$ xcrun devicectl list devices
+$ xcrun devicectl device install app --device DEVICE build/Build/Products/Debug-iphoneos/CrossEm.app
+$ xcrun devicectl device process launch --device DEVICE com.yourname.CrossEm
+```
+
 Playtesters answer the questions in `CrossEm-results.txt`, next to the kit's `README.txt`, and send that file back. The questions come from `doc/playtest-questions.txt`.
 
 ### What the workflow checks
 
-It has the three jobs of Lota's iOS kit workflow, plus a release job for tags:
+It has the three jobs of Lota's experimental iOS kit workflow, plus a release job for tags:
 
-1. **The Xcode project** builds SDL3 for iOS, lays the game out, runs `fledge build ios`, fails if the project names a path on the runner, and uploads `ios-kit`.
-2. **A fresh Mac, in portrait.** A second runner with no Lota, Fledge, XcodeGen or gems unpacks the zip and builds it with `xcodebuild` for the Simulator and, unsigned, for devices, Debug and Release. Lota's `check_app.rb` checks each built app's `Info.plist`: the name, character for character, the identifier, iPhone and iPad, the orientations, the status bar and the icon. Lota's `simulator.rb` then runs the app in an iPad Pro 13-inch, an iPad (A16), an iPad mini, an iPhone 17 Pro and an iPhone 16e: two launches that play No. 1720 to a win by themselves (`CROSS_EM_SCRIPT`), take screenshots and quit with status 0, and one launch with no settings. A launch fails on a crash, a Ruby `[BUG]`, a nonzero exit, or, for the scripted ones, no `screenshot … shot-2.png` line in the game's output. It uploads `ios-kit-simulator`, with Simulator screenshots, the game's log and its saves for every launch.
-3. **Landscape, touch and rotation.** A third runner adds UI tests to a copy of the project. They turn each Simulator to landscape for the same launches. On the iPad Pro and the iPhone 17 Pro, they also tap known points in portrait, turn the device to landscape, tap again, and turn it back. In that copy only, the game also loads `ios/touch_probe.rb`, which prints where each touch landed in Lota's pixels. It uploads `ios-kit-touch`.
+1. **The Xcode project** builds SDL3 for iOS from Lota v0.1.3, lays the game out with Lota as a path gem (only inside the job; this repository's `Gemfile` is unchanged), runs `fledge build ios`, fails if the project names a path on the runner, and uploads `ios-kit`.
+2. **A fresh Mac, in portrait.** A second runner with no Lota, Fledge, XcodeGen or gems unpacks the zip and builds it with `xcodebuild` for the Simulator and, unsigned, for devices, Debug and Release. The experiment's `check_app.rb` checks each built app's `Info.plist`: the name, character for character, the identifier, iPhone and iPad, the orientations, the status bar and the icon. `ios/simulator.rb`, a copy of the experiment's, then runs the app in an iPad Pro 13-inch, an iPad (A16), an iPad mini, an iPhone 17 Pro and an iPhone 16e: two launches that play No. 1720 to a win by themselves (`CROSS_EM_SCRIPT`), take screenshots and quit with status 0, and one launch with no settings. A launch fails on a crash, a Ruby `[BUG]`, a nonzero exit, or, for the scripted ones, no `screenshot … shot-2.png` line in the game's output. It uploads `ios-kit-simulator`, with Simulator screenshots, the game's log and its saves for every launch.
+3. **Landscape, touch and rotation.** A third runner adds the experiment's UI tests to a copy of the project. They turn each Simulator to landscape for the same launches. On the iPad Pro and the iPhone 17 Pro, they also tap known points in portrait, turn the device to landscape, tap again, and turn it back. In that copy only, the game also loads `ios/touch_probe.rb`, which prints where each touch landed in Lota's pixels. It uploads `ios-kit-touch`.
 
-`ios/README.txt` is the kit's `README.txt`, Lota's `ipad/README.txt` changed to say where to download this repository's kit.
+Only these Simulator checks (`check_app.rb` and the UI tests) come from Lota's experiment branch, and none of it reaches the kit. `ios/README.txt` is the kit's `README.txt`, the experiment's changed to say where to download this repository's kit.
 
 ## What has been verified, and what hasn't
 
@@ -162,7 +173,7 @@ Verified:
 - On Linux x86_64, CI also runs the packaged game for five seconds under Xvfb with Mesa's software OpenGL, and it quits on its own with status 0.
 - On an Apple-silicon Mac, the fused macOS app opens its window, plays with sound, and quits cleanly. Fledge, the file system and the archive tools all cope with the curly apostrophe (U+2019) in the name.
 - A fused macOS app that hung at launch with audio on was traced to a stuck macOS service (`com.apple.cmio.registerassistantservice`), not to the game: any app with a bundle identifier that opened CoreAudio hung the same way. Restarting the service (`sudo kill -9` on its process; macOS starts it again) fixed it.
-- The iOS kit, in CI ([run 42105015578](https://github.com/Kerrick/cross_em/actions/runs/42105015578)): a fresh Mac with no Lota, Fledge or XcodeGen builds it for the Simulator and, unsigned, for devices. In the iOS 26.2 Simulator on an iPad Pro 13-inch, an iPad (A16), an iPad mini, an iPhone 17 Pro and an iPhone 16e, in portrait and in landscape, it plays No. 1720 to a win and quits with status 0, and runs idle without crashing. Its screenshots show the board laid out inside the safe area, clear of the Dynamic Island and the home indicator. With Lota's DPI scaling off, the UI test's taps reach the game at exactly the fractions of `Lota::Graphics.pixel_dimensions` they aimed at, in portrait and in landscape, and turning the device resizes the game.
+- The iOS kit, in CI ([run 42122449837](https://github.com/Kerrick/cross_em/actions/runs/42122449837), built from Lota v0.1.3 and Fledge v0.5.1): a fresh Mac with no Lota, Fledge or XcodeGen builds it for the Simulator and, unsigned, for devices. In the iOS 26.2 Simulator on an iPad Pro 13-inch, an iPad (A16), an iPad mini, an iPhone 17 Pro and an iPhone 16e, in portrait and in landscape, it plays No. 1720 to a win and quits with status 0, and runs idle without crashing. Its screenshots show the board laid out inside the safe area, clear of the Dynamic Island and the home indicator. With Lota's DPI scaling off, the UI test's taps reach the game at exactly the fractions of `Lota::Graphics.pixel_dimensions` they aimed at, in portrait and in landscape, and turning the device resizes the game.
 
 Not verified:
 

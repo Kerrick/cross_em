@@ -53,7 +53,7 @@ Players without Ruby can download a built app for Linux, Windows or macOS from
 the [Releases page](https://github.com/Kerrick/cross_em/releases).
 [PACKAGING.md](PACKAGING.md) explains each platform's files, how to install
 them, and how releases are made. iPhone and iPad builds come as an Xcode
-project from Lota's experimental iOS kit; see "iPhone and iPad" below.
+project, the iOS kit; see "iPhone and iPad" below.
 
 ## Running from source
 
@@ -133,11 +133,11 @@ and text and lines land exactly on pixels with nothing resampled.
 
 ## iPhone and iPad
 
-Lota's iOS support is an experiment, so Cross ’em for iPhone and iPad comes
-as an Xcode project (a "kit") that you build and sign yourself, on a Mac with
-Xcode and an Apple ID. This repository's
-[iOS kit workflow](.github/workflows/ios-kit.yml) makes the kit with Lota's
-iOS kit tooling.
+Apple allows no player app for Lota games, so Cross ’em for iPhone and iPad
+comes as an Xcode project (a "kit") that you build and sign yourself, on a
+Mac with Xcode and an Apple ID. This repository's
+[iOS kit workflow](.github/workflows/ios-kit.yml) makes the kit from Lota
+0.1.3 and Fledge, with scripts adapted from Lota's iOS kit experiment.
 
 1. **Get the kit.** Download `CrossEm-ios.zip` and
    `CrossEm-ios-SHA256SUMS.txt` from a tagged prerelease on the
