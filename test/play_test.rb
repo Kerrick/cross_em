@@ -189,4 +189,14 @@ class PlayTest < Minitest::Test
     assert_nil play.next_day
     assert_equal 0, @host.next_days
   end
+
+  def test_a_copy_that_fails_says_so_and_does_not_ding
+    @host = FakeHost.new(clipboard: false)
+    play = play()
+    play.give_up(confirmed: true)
+    play.copy
+
+    assert_equal Copy::COPY_FAILED, play.label(:copy)
+    refute_includes @host.sounds, :copied
+  end
 end

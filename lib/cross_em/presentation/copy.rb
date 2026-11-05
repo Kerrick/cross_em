@@ -14,6 +14,7 @@ module CrossEm
       CONFIRM_GIVE_UP = "Give up? Tap again"
       COPY_RESULT = "Copy result"
       COPIED = "Copied"
+      COPY_FAILED = "Couldn't copy"
       COPIED_NOTE = "Copied. Paste it anywhere."
       NEXT_PUZZLE = "Next puzzle in"
       WON = "Solved!"

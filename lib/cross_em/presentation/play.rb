@@ -16,7 +16,8 @@ module CrossEm
 
       attr_reader :game, :settings, :gesture, :time, :units, :motion
 
-      # +host+ answers sound(name), copy(text), settings_changed(settings),
+      # +host+ answers sound(name), copy(text) (true if it worked),
+      # settings_changed(settings),
       # next_day, dark? and read(path). +measure+ wraps text for the sheets (SheetLayout).
       def initialize(game:, session:, dictionary:, settings:, host:, measure:, clock: Clock.real, touch: false)
         @session, @dictionary, @settings, @host, @measure, @clock, @touch =
@@ -33,7 +34,7 @@ module CrossEm
         @placed = []
         @motion = Motion.new(calm: @settings.calm).tap { it.update(@time) }
         @view = nil
-        @armed_at = @copied_at = @stats = nil
+        @armed_at = @copied_at = @copy_failed_at = @stats = nil
         game.subscribe { changed(it) }
       end
 
@@ -95,6 +96,7 @@ module CrossEm
 
       def armed? = @armed_at && @time - @armed_at < T.give_up_confirm
       def copied? = @copied_at && @time - @copied_at < T.copied
+      def copy_failed? = @copy_failed_at && @time - @copy_failed_at < T.copied
 
       def enabled?(control)
         case control
@@ -109,7 +111,11 @@ module CrossEm
         when :shuffle then Copy::SHUFFLE
         when :reset then Copy::RESET
         when :give_up then armed? ? Copy::CONFIRM_GIVE_UP : Copy::GIVE_UP
-        when :copy then copied? ? Copy::COPIED : Copy::COPY_RESULT
+        when :copy
+          if copied? then Copy::COPIED
+          elsif copy_failed? then Copy::COPY_FAILED
+          else Copy::COPY_RESULT
+          end
         end
       end
 
@@ -260,9 +266,13 @@ module CrossEm
       def copy
         return unless game.over?
 
-        @host.copy(ShareText.for(game, dark: @host.dark?).to_s)
-        @copied_at = @time
-        @host.sound(:copied)
+        if @host.copy(ShareText.for(game, dark: @host.dark?).to_s)
+          @copied_at, @copy_failed_at = @time, nil
+          @host.sound(:copied)
+        else
+          @copied_at, @copy_failed_at = nil, @time
+          @host.sound(:button)
+        end
       end
 
       def open(kind, sound: true)

@@ -33,13 +33,13 @@ module PresentationTest
   class FakeHost
     attr_reader :sounds, :copied, :settings, :next_days
 
-    def initialize(dark: false)
-      @dark = dark
+    def initialize(dark: false, clipboard: true)
+      @dark, @clipboard = dark, clipboard
       @sounds, @copied, @next_days = [], [], 0
     end
 
     def sound(name) = @sounds << name
-    def copy(text) = @copied << text
+    def copy(text) = @clipboard && (@copied << text)
     def settings_changed(settings) = @settings = settings
     def next_day = @next_days += 1
     def dark? = @dark
