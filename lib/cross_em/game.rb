@@ -71,6 +71,18 @@ module CrossEm
       end
     end
 
+    # Places the letter in slot +index+ on the target +position+ at once,
+    # as tapping the slot and then the target would, for a whole word
+    # typed at a keyboard. A letter selected before is put down first.
+    # Anything that is not a letter going to a target does nothing.
+    def place_letter(index, position)
+      return unless playing? && pool.letter?(index) && board.target?(position)
+
+      tap_slot(selected) if selected && selected != index
+      @selected = index
+      place(position)
+    end
+
     # Reorders all twelve slots at random, empty ones too. A selected
     # letter stays selected, wherever it lands.
     def shuffle(random: Random.new)

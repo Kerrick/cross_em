@@ -160,4 +160,39 @@ class GameTest < Minitest::Test
     assert_nil game.give_up
     assert_equal before, [game.pool, game.board]
   end
+
+  def test_placing_a_letter_at_once_is_a_tap_on_its_slot_then_its_target
+    game = game()
+    events = events_of(game)
+
+    assert_equal Events::Placed.new(letter: "A", index: 1, position: Position::ORIGIN), game.place_letter(1, Position::ORIGIN)
+    assert_equal [Events::Placed.new(letter: "A", index: 1, position: Position::ORIGIN)], events
+    assert_nil game.selected
+  end
+
+  def test_placing_a_letter_at_once_puts_down_one_selected_first
+    game = game()
+    game.tap_slot(4)
+    events = events_of(game)
+    game.place_letter(1, Position::ORIGIN)
+
+    assert_equal [Events::Deselected, Events::Placed], events.map(&:class)
+  end
+
+  def test_placing_a_letter_at_once_off_target_or_from_an_empty_slot_does_nothing
+    game = game(pool: ".ATSDOGTAGCA")
+
+    assert_nil game.place_letter(0, Position::ORIGIN)
+    assert_nil game.place_letter(1, at(3, 3))
+    assert_predicate game.board, :empty?
+  end
+
+  def test_placing_the_last_letter_at_once_checks_and_can_win
+    game = game(pool: "S...........", board: board("CAT"))
+    events = events_of(game)
+    game.place_letter(0, at(3, 0))
+
+    assert_equal [Events::Placed, Events::Checked, Events::Won], events.map(&:class)
+    assert_predicate game, :won?
+  end
 end
