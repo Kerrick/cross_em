@@ -80,4 +80,55 @@ class SessionTest < Minitest::Test
 
     assert_equal 1, session.stats(Day.numbered(1720)).played
   end
+
+  def test_a_practice_game_never_saves_whatever_happens_in_it
+    session = session()
+    official = session.open(Day.numbered(1720))
+    official.tap_slot(0)
+    official.tap_cell(Position::ORIGIN)
+    saved = @storage.read(Archive::FILE)
+
+    practice = session.practice(Day.numbered(1720))
+
+    assert_predicate practice.board, :empty?, "a fresh board"
+    assert_equal 12, practice.pool.unused_count, "a fresh pool"
+    practice.tap_slot(3)
+    practice.tap_cell(Position::ORIGIN)
+    practice.shuffle(random: Random.new(1))
+    practice.reset
+    practice.give_up
+
+    assert_predicate practice, :lost?
+    assert_equal saved, @storage.read(Archive::FILE), "nothing written"
+    assert_equal 1, session.archive[1720].board.size, "the day's record stands"
+    refute_predicate session.archive[1720], :finished?
+    assert_equal 1, session.stats(Day.numbered(1720)).played
+  end
+
+  def test_practising_a_day_never_played_leaves_it_unplayed
+    session = session()
+    practice = session.practice(Day.numbered(5))
+    practice.give_up
+
+    assert_nil session.archive[5]
+    assert_nil @storage.read(Archive::FILE)
+  end
+
+  def test_a_review_shows_the_saved_board_and_never_saves
+    session = session()
+    played = session.open(Day.numbered(1720))
+    played.tap_slot(0)
+    played.tap_cell(Position::ORIGIN)
+    played.give_up
+    saved = @storage.read(Archive::FILE)
+
+    review = session.review(session.archive[1720])
+
+    assert_predicate review, :lost?
+    assert_equal played.board, review.board
+    assert_equal 1, review.check.count
+    review.tap_cell(Position::ORIGIN)
+
+    assert_equal saved, @storage.read(Archive::FILE)
+  end
 end
