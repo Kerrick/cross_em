@@ -54,4 +54,23 @@ class RefereeTest < Minitest::Test
     assert Dictionary.new(%w[cat]).include?("CAT")
     refute Dictionary.new(%w[Cat]).include?("CAT")
   end
+
+  def problem_words(check) = check.words.map { [it.word.text, it.reason] }
+
+  def test_the_check_names_the_words_that_are_problems_in_reading_order
+    check = referee.check(board("CATS", "....", "DOG.", "....", "AZXOG"))
+
+    assert_equal [["DOG", :disconnected], ["AZXOG", :not_a_word]], problem_words(check)
+  end
+
+  def test_a_good_word_crossed_by_a_bad_one_is_not_named
+    check = referee.check(board("CAT", "AZ."))
+
+    assert_equal [["CA", :too_short], ["AZ", :too_short], ["AZ", :too_short]], problem_words(check), "AZ down and across"
+    refute_includes problem_words(check).map(&:first), "CAT"
+  end
+
+  def test_a_clean_board_names_no_words
+    assert_empty referee.check(board("CATS")).words
+  end
 end

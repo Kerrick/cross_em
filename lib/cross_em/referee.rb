@@ -17,17 +17,28 @@ module CrossEm
 
     def check(board)
       problems = {}
+      words = []
       mark = ->(positions, reason) { positions.each { problems[it] ||= reason } }
 
-      board.words.each { |word| mark.(word.positions, verdict(word)) if verdict(word) }
+      all = board.words.sort_by { it.positions.first }
+      all.each do |word|
+        reason = verdict(word) or next
+        mark.(word.positions, reason)
+        words << Check::Problem.new(word:, reason:)
+      end
 
       first = board.positions.find { !problems.key?(it) }
       if first
         kept = board.group_of(first)
         mark.(board.positions.reject { kept.include?(it) }, :disconnected)
+        all.each do |word|
+          next if verdict(word) || word.positions.any? { kept.include?(it) }
+
+          words << Check::Problem.new(word:, reason: :disconnected)
+        end
       end
 
-      Check.new(problems:)
+      Check.new(problems:, words: words.sort_by { it.word.positions.first })
     end
 
     private
