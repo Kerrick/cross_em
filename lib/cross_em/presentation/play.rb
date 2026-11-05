@@ -165,29 +165,10 @@ module CrossEm
         end
       end
 
-      # --- Keys ---
+      # --- Keys (KeyMap) ---
 
-      # Typed text: a letter picks up that letter (again, the next one of
-      # the same letter, or puts it down), and "?" opens How to play.
-      def text(text)
-        return toggle_help if text == "?"
-        return if sheet?
-
-        letter = text.upcase
-        pick_letter(letter) if letter.match?(/\A[A-Z]\z/)
-      end
-
-      def key(key, command: false)
-        case key
-        when :escape then escape
-        when :c then copy if command && game.over?
-        when :return, :kpenter then sheet? ? close_sheet : (next_day && @host.next_day)
-        when :space then press_button(:shuffle) unless sheet?
-        when :backspace, :delete then take_back unless sheet?
-        when :up, :pageup then scroll_sheet(-units.px(key == :up ? 40 : 300)) if sheet?
-        when :down, :pagedown then scroll_sheet(units.px(key == :down ? 40 : 300)) if sheet?
-        end
-      end
+      def text(text) = KeyMap.text(self, text)
+      def key(key, command: false) = KeyMap.key(self, key, command:)
 
       # --- Actions, by name, as the buttons and a Script call them ---
 
@@ -309,6 +290,18 @@ module CrossEm
 
       # Moves the board under the finger at once, the camera stopping
       # wherever it was easing to.
+      # Esc: closes a sheet, or puts down a letter picked up.
+      def escape
+        if sheet? then close_sheet
+        elsif game.selected then pick(game.selected)
+        end
+      end
+
+      def toggle_help = sheet&.kind == :help ? close_sheet : open(:help)
+
+      # Enter: today's puzzle, once the finished one's clock has run out.
+      def next_puzzle = next_day && @host.next_day
+
       def pan(dx, dy)
         @view = shown_view.with(viewport: view.viewport, content: view.content, cell: view.cell).pan(dx, dy)
         @motion.camera(nil, @view)
@@ -327,14 +320,6 @@ module CrossEm
       end
 
       def disarm = @armed_at = nil
-
-      def escape
-        if sheet? then close_sheet
-        elsif game.selected then pick(game.selected)
-        end
-      end
-
-      def toggle_help = sheet&.kind == :help ? close_sheet : open(:help)
 
       # What is under (+x+, +y+): a sheet's part while one is open, else a
       # button, a pool slot, the board, or nothing.
