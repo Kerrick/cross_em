@@ -15,7 +15,7 @@ module CrossEm
         game = play.game
         motion = play.motion
         play.layout.pool.each_with_index do |rect, index|
-          socket(rect)
+          @tiles.socket(rect)
           letter = game.pool[index]
           next if letter.nil? || motion.flying?([:slot, index])
 
@@ -41,15 +41,6 @@ module CrossEm
         t = motion.finish(Position::ORIGIN)
         @tiles.draw(pose.rect, letter, alpha: 1.0 - t, depth: depth(pose.rect)) if t < 1.0
         @tiles.draw(pose.rect, letter, state: :unused, alpha: t)
-      end
-
-      def socket(rect)
-        palette = @pen.palette
-        radius = (rect.width * 0.14).round
-        @pen.fill(rect, palette.page_shade, radius:)
-        @pen.fill(rect.with(height: @pen.px(3)).inset(radius, 0), palette.shadow, alpha: 0.5)
-        @pen.dashed(rect, palette.ink_muted, width: @pen.stroke(1), dash: @pen.px(4), gap: @pen.px(3), radius:,
-                                             alpha: 0.45)
       end
 
       # A small upward caret under the slot, pointing at the lifted tile.

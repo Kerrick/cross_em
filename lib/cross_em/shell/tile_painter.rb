@@ -18,6 +18,16 @@ module CrossEm
         @pen = pen
       end
 
+      # A sunken dashed socket where a tile can sit and none does.
+      def socket(rect, alpha: 1.0)
+        palette = @pen.palette
+        radius = (rect.width * 0.14).round
+        @pen.fill(rect, palette.page_shade, radius:, alpha:)
+        @pen.fill(rect.with(height: @pen.px(3)).inset(radius, 0), palette.shadow, alpha: 0.5 * alpha)
+        @pen.dashed(rect, palette.ink_muted, width: @pen.stroke(1), dash: @pen.px(4), gap: @pen.px(3), radius:,
+                                             alpha: 0.45 * alpha)
+      end
+
       # +rect+ is the tile's footprint, edge included. +depth+ is the edge
       # in pixels; +lift+ raises the tile off its footprint.
       def draw(rect, letter, state: :plain, depth: nil, lift: 0, alpha: 1.0, squash: 1.0, flip: 1.0)

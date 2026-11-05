@@ -3,8 +3,9 @@
 module CrossEm
   module Shell
     # The grid: graph-paper dots at every cell's corners, the letters on
-    # it as flat tiles, and, while a letter is picked up, the targets it
-    # may go to, breathing. A check sweeps a soft light across it, marking
+    # it as flat tiles (or, before the first, a socket where it will go),
+    # and, while a letter is picked up, the targets it may go to,
+    # breathing. A check sweeps a soft light across it, marking
     # problems as it passes; at the end, the letters take their final
     # faces, in a wave after a win. Everything is clipped to the board's
     # viewport, which pans when the board is too big for it.
@@ -21,6 +22,7 @@ module CrossEm
         motion = play.motion
         @pen.clip(view.viewport) do
           dots(view)
+          start(view) if game.playing? && game.board.empty? && !game.selected
           targets(view, game, motion.targets) if game.playing? && game.selected
           game.board.positions.each do |position|
             next if !view.visible?(position) || motion.flying?([:cell, position])
@@ -74,6 +76,11 @@ module CrossEm
           columns.each { G.rectangle(:fill, it, y, size, size) }
         end
       end
+
+      # On an empty board, a sunken socket where the first letter will go,
+      # so the eye has somewhere to look before a letter is picked up. It
+      # gives way to the target there as one is.
+      def start(view) = @tiles.socket(view.tile_rect(Position::ORIGIN))
 
       def targets(view, game, alpha)
         game.board.targets.each do |position|
