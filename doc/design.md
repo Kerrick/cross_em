@@ -105,11 +105,17 @@ Designed in points, from a phone up:
   one status line; the pool as two rows of six; the controls row (Shuffle,
   Reset, Give up) at the bottom, in thumb reach. Everything inside the safe
   area.
-- **Landscape (tablet, desktop, a phone on its side; at least 600 pt wide and
+- **Landscape (tablet, desktop, a phone on its side; at least 560 pt wide and
   1.1× wider than tall):** the board takes the left, larger part; a column on
   the right (38% of the width, 320–430 pt) holds the status line, the pool and
   the controls, centred top to bottom. Six tiles a row, or four if six would
   be under 44 pt.
+- **Short of room** (a small phone, a short window, the results), the layout
+  packs tighter step by step — smaller gaps, a smaller heading and
+  statistics, then, after the game, when the pool can no longer be tapped,
+  smaller pool tiles — and failing that turns the other way round, so the
+  board always keeps at least one 44 pt cell and every part stays on screen.
+  On the narrowest phones the puzzle number gives way to the wordmark.
 - Pool tiles are at least 44 pt (≈ 7.8 mm on an iPhone) and grow to 64 pt;
   controls are 48 pt tall.
 - **After the game** the results take the status line's and the controls'
@@ -188,7 +194,8 @@ The status line always says what the player can do next, in their state:
 
 Buttons name their action: "Shuffle", "Reset", "Give up" (which turns
 vermilion and asks "Give up? Tap again" for three seconds before it acts),
-"Copy result" (then "Copied" for a few seconds, with a ding), "Play No. 1721"
+"Copy result" (then "Copied" for a few seconds, with a ding, or
+"Couldn't copy" if the clipboard refused it), "Play No. 1721"
 once the clock runs out. A label too long for its button wraps onto two lines
 in a smaller size rather than being cut off.
 
