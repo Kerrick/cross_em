@@ -40,7 +40,8 @@ module CrossEm
         return @pen.centered(text, font, rect, color, alpha:) if font.width(text) <= room
 
         small = @pen.type.fonts.sans_bold(@pen.px(14))
-        _, lines = small.wrap(text, room)
+        lines = text.split(/(?<=[?.!]) /)
+        _, lines = small.wrap(text, room) if lines.size < 2 || lines.any? { small.width(it) > room }
         line_height = (small.height * 1.05).round
         top = rect.center_y - (lines.size * line_height / 2.0)
         lines.each_with_index do |line, i|
