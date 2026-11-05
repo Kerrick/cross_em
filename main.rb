@@ -9,9 +9,10 @@
 # glowing square on the grid to place it; tap a placed letter to send it
 # back. Drag the grid, or scroll, to see all of a big one. On a keyboard,
 # type a letter to pick it up (again for the next of the same letter), Esc
-# puts it down or closes a sheet, Space shuffles, ? opens How to play,
-# Ctrl+C or Cmd+C copies the result once the game is over, Enter plays
-# the next puzzle when it is ready, and F11 toggles fullscreen.
+# puts it down or closes a sheet, Backspace sends back the letter placed
+# last, Space shuffles, ? opens How to play, Ctrl+C or Cmd+C copies the
+# result once the game is over, Enter plays the next puzzle when it is
+# ready, and F11 toggles fullscreen.
 #
 # Development settings, read from the environment:
 #

@@ -154,4 +154,29 @@ class PlayTest < Minitest::Test
 
     assert_equal 1, @host.next_days
   end
+
+  def test_backspace_puts_down_a_letter_then_sends_back_the_last_placed
+    play = play()
+    play.pick(0)
+    play.tap_cell(Position::ORIGIN)
+    play.pick(1)
+    play.tap_cell(at(1, 0))
+    play.pick(2)
+    play.key(:backspace)
+
+    assert_nil play.game.selected
+    play.key(:backspace)
+
+    assert_equal ["C"], play.game.board.cells.values
+  end
+
+  def test_the_pointer_is_a_hand_over_what_a_click_would_change
+    play = play()
+    slot = play.layout.pool[0]
+
+    assert_equal :hand, play.cursor_at(slot.center_x, slot.center_y)
+    reset = play.layout.controls.reset
+
+    assert_equal :arrow, play.cursor_at(reset.center_x, reset.center_y), "nothing to reset yet"
+  end
 end

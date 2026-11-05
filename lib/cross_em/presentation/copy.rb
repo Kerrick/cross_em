@@ -85,7 +85,8 @@ module CrossEm
           Block.bullet("Use as many letters as you can. The game ends when all twelve are used in good words, " \
                        "or when you give up."),
           Block.bullet("Shuffle mixes up the pool. Reset sends every letter back."),
-          (Block.bullet("On a keyboard, type a letter to pick it up, and press Esc to put it down.") unless touch),
+          (Block.bullet("On a keyboard, type a letter to pick it up and Esc to put it down. Backspace sends " \
+                        "back the letter you placed last.") unless touch),
           Block.space,
           Block.toggle(:calm, "Calm motion", "Gentle fades instead of flights and bounces."),
           Block.space,

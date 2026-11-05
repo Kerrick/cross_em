@@ -30,6 +30,7 @@ module CrossEm
 
       def game=(game)
         @game = game
+        @placed = []
         @motion = Motion.new(calm: @settings.calm).tap { it.update(@time) }
         @view = nil
         @armed_at = @copied_at = @stats = nil
@@ -175,6 +176,7 @@ module CrossEm
         when :c then copy if command && game.over?
         when :return, :kpenter then sheet? ? close_sheet : (next_day && @host.next_day)
         when :space then press_button(:shuffle) unless sheet?
+        when :backspace, :delete then take_back unless sheet?
         when :up, :pageup then scroll_sheet(-units.px(key == :up ? 40 : 300)) if sheet?
         when :down, :pagedown then scroll_sheet(units.px(key == :down ? 40 : 300)) if sheet?
         end
@@ -201,6 +203,29 @@ module CrossEm
       def tap_cell(position)
         disarm
         game.tap_cell(position) if position
+      end
+
+      # Backspace: puts down a letter picked up, or else sends back the
+      # letter placed last.
+      def take_back
+        return pick(game.selected) if game.selected
+
+        last = @placed.reverse.find { game.board.occupied?(it) } || game.board.positions.last
+        tap_cell(last) if last
+      end
+
+      # What the mouse pointer should look like over (+x+, +y+): a hand
+      # over anything a click would do something to, a four-way arrow over
+      # a board that pans, else the arrow.
+      def cursor_at(x, y)
+        case target_at(x, y)
+        in [:button, name] then enabled?(name) ? :hand : :arrow
+        in [:slot, index] then game.playing? && game.pool.letter?(index) ? :hand : :arrow
+        in [:board] then board_cursor(shown_view.cell_at(x, y))
+        in [:sheet, :close | :scrim] then :hand
+        in [:sheet, :body] then sheet_layout.control_at(x, y, sheet.scroll) ? :hand : :arrow
+        else :arrow
+        end
       end
 
       def press_button(name)
@@ -326,6 +351,13 @@ module CrossEm
         end
       end
 
+      def board_cursor(cell)
+        if game.playing? && cell && (game.selected ? game.board.target?(cell) : game.board.occupied?(cell)) then :hand
+        elsif shown_view.pannable? then :sizeall
+        else :arrow
+        end
+      end
+
       def drag(target, dx, dy)
         case target
         in [:board] then pan(dx, dy)
@@ -381,6 +413,7 @@ module CrossEm
       end
 
       def placed(event)
+        @placed << event.position
         slot = layout.pool[event.index]
         lift = units.px(Look::METRICS.lift) * @motion.lift(event.index)
         @motion.left(event.index)

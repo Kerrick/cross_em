@@ -62,7 +62,10 @@ module CrossEm
 
       def mouse_moved(x, y, istouch)
         pointer = @input.mouse(:moved, x, y, button: 1, istouch:)
-        @play.pointer(pointer) if pointer
+        return unless pointer
+
+        @play.pointer(pointer)
+        cursor(@play.cursor_at(pointer.x, pointer.y))
       end
 
       def touch(phase, id, x, y, devicetype, mouse)
@@ -164,6 +167,17 @@ module CrossEm
         return Presentation::Rect.new(x: 0, y: 0, width:, height:) unless w.to_i.positive? && h.to_i.positive?
 
         Presentation::Rect.new(x: x.to_i, y: y.to_i, width: w.to_i, height: h.to_i)
+      end
+
+      # Shows the system's +name+ cursor, if this computer has cursors.
+      def cursor(name)
+        return if name == @cursor || touch?
+
+        @cursor = name
+        @cursors ||= {}
+        ::Lota::Mouse.cursor = (@cursors[name] ||= ::Lota::Mouse.system_cursor(name))
+      rescue StandardError
+        @cursor = name
       end
 
       def toggle_fullscreen
