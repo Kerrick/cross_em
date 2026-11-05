@@ -140,6 +140,14 @@ class PlayTest < Minitest::Test
     assert_equal :light, @host.settings.appearance
   end
 
+  def test_flipping_the_page_back_to_the_systems_follows_the_system_again
+    @host = FakeHost.new(dark: false, system_theme: :dark) # the player chose the light page
+    play = play(settings: Settings.default.with(appearance: :light))
+    tap_rect(play, play.layout.theme_button)
+
+    assert_equal :system, @host.settings.appearance
+  end
+
   def test_the_next_puzzle_is_offered_only_once_its_day_has_come
     day = Day.numbered(1720)
     play = play(game: game(day:), clock: Clock.pretending(day.date))

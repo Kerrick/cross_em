@@ -4,7 +4,8 @@ module CrossEm
   module Shell
     # The header: the wordmark, with its apostrophe in the accent color,
     # the puzzle's number, and three icon buttons: How to play, the
-    # appearance (following the system, light or dark), and sound.
+    # page's appearance (a sun on the light page, a moon on the dark one;
+    # tapping flips it), and sound.
     class HeaderPainter
       G = ::Lota::Graphics
 
@@ -12,13 +13,13 @@ module CrossEm
         @pen = pen
       end
 
-      def draw(play, appearance:, muted:)
+      def draw(play, dark:, muted:)
         layout = play.layout
         palette = @pen.palette
         wordmark(layout.wordmark, Presentation::Copy.number(play.game.day))
         @pen.fill(layout.header.with(y: layout.header.bottom - 1, height: 1), palette.rule)
         help(layout.help_button)
-        theme(layout.theme_button, appearance)
+        theme(layout.theme_button, dark)
         sound(layout.sound_button, muted)
       end
 
@@ -59,29 +60,23 @@ module CrossEm
         @pen.centered("?", @pen.type.fonts.sans_bold(@pen.px(15)), box, @pen.palette.ink)
       end
 
-      # Half a disc for "follow the system", a sun for light, a crescent
-      # moon for dark.
-      def theme(rect, appearance)
+      # A sun on the light page, a crescent moon on the dark one.
+      def theme(rect, dark)
         box = icon_box(rect)
         ink = @pen.palette.ink
         cx, cy = box.center_x, box.center_y
         r = box.width / 2.0
         width = @pen.stroke(2)
-        case appearance
-        when :system
-          @pen.circle(:line, ink, cx, cy, r - (width / 2.0), width:)
-          @pen.color(ink)
-          G.arc(:fill, :pie, cx, cy, r - (width / 2.0), Math::PI * 0.5, Math::PI * 1.5, 24)
-        when :light
-          @pen.circle(:line, ink, cx, cy, r * 0.42, width:)
-          8.times do |i|
-            angle = i * Math::PI / 4
-            @pen.line(ink, width, cx + (Math.cos(angle) * r * 0.66), cy + (Math.sin(angle) * r * 0.66),
-                      cx + (Math.cos(angle) * r * 0.95), cy + (Math.sin(angle) * r * 0.95))
-          end
-        else
+        if dark
           @pen.circle(:fill, ink, cx, cy, r * 0.82)
           @pen.circle(:fill, @pen.palette.page, cx + (r * 0.42), cy - (r * 0.3), r * 0.7)
+        else
+          @pen.circle(:fill, ink, cx, cy, r * 0.36)
+          8.times do |i|
+            angle = i * Math::PI / 4
+            @pen.line(ink, width, cx + (Math.cos(angle) * r * 0.62), cy + (Math.sin(angle) * r * 0.62),
+                      cx + (Math.cos(angle) * r * 0.95), cy + (Math.sin(angle) * r * 0.95))
+          end
         end
       end
 

@@ -16,8 +16,8 @@ module CrossEm
       attr_reader :game, :settings, :time, :units, :motion
 
       # +host+ answers sound(name), copy(text) (true if it worked),
-      # settings_changed(settings),
-      # next_day, dark? and read(path). +measure+ wraps text for the sheets (SheetLayout).
+      # settings_changed(settings), next_day, dark?, system_theme (:light,
+      # :dark or :unknown) and read(path). +measure+ wraps text for the sheets (SheetLayout).
       def initialize(game:, session:, settings:, host:, measure:, clock: Clock.real, touch: false)
         @session, @settings, @host, @measure, @clock, @touch = session, settings, host, measure, clock, touch
         @time = 0.0
@@ -173,7 +173,7 @@ module CrossEm
         @armed_at = nil unless name == :give_up
         case name
         when :help then open(:help)
-        when :theme then change(appearance: Appearance.next(@settings.appearance))
+        when :theme then change(appearance: Appearance.flip(@settings.appearance, @host.system_theme))
         when :sound then change(muted: !@settings.muted)
         when :shuffle then game.shuffle
         when :reset then game.reset

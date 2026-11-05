@@ -23,7 +23,19 @@ class SettingsTest < Minitest::Test
     refute Appearance.dark?(:system, :unknown)
     assert Appearance.dark?(:dark, :light)
     refute Appearance.dark?(:light, :dark)
-    assert_equal %i[light dark system], Appearance::CHOICES.map { Appearance.next(it) }
+  end
+
+  def test_the_theme_button_flips_the_page_and_follows_the_system_when_it_agrees
+    assert_equal :light, Appearance.flip(:system, :dark)
+    assert_equal :dark, Appearance.flip(:system, :light)
+    assert_equal :system, Appearance.flip(:light, :dark)
+    assert_equal :system, Appearance.flip(:dark, :light)
+  end
+
+  def test_a_system_that_cannot_say_keeps_the_page_asked_for
+    assert_equal :dark, Appearance.flip(:system, :unknown)
+    assert_equal :light, Appearance.flip(:dark, :unknown)
+    assert_equal :dark, Appearance.flip(:light, :unknown)
   end
 
   def test_a_pretend_clock_keeps_the_time_of_day

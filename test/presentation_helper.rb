@@ -33,8 +33,9 @@ module PresentationTest
   class FakeHost
     attr_reader :sounds, :copied, :settings, :next_days
 
-    def initialize(dark: false, clipboard: true)
+    def initialize(dark: false, clipboard: true, system_theme: nil)
       @dark, @clipboard = dark, clipboard
+      @system_theme = system_theme || (dark ? :dark : :light)
       @sounds, @copied, @next_days = [], [], 0
     end
 
@@ -43,6 +44,7 @@ module PresentationTest
     def settings_changed(settings) = @settings = settings
     def next_day = @next_days += 1
     def dark? = @dark
+    def system_theme = @system_theme
     def read(path) = "text of #{path}\n\nsecond paragraph"
   end
 end

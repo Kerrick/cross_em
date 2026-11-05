@@ -28,7 +28,7 @@ module CrossEm
         @cues = []
         @speaker = Speaker.new(muted: settings.muted, enabled: @env["CROSS_EM_MUTE"] != "1")
         @clipboard = Clipboard.new
-        @system_theme = system_theme
+        @system_theme = read_system_theme
         @fonts = FontBook.new(Look::TYPE)
         @play = Presentation::Play.new(game: open_game(@clock.today), session: @session,
                                        settings:, host: self, measure: nil, clock: @clock,
@@ -48,7 +48,7 @@ module CrossEm
 
       def draw
         @pen.palette = palette
-        @renderer.draw(@play, appearance: @play.settings.appearance, muted: @play.settings.muted)
+        @renderer.draw(@play, dark: dark?, muted: @play.settings.muted)
       end
 
       # --- Lota's input, as the player's pointers and keys ---
@@ -82,7 +82,7 @@ module CrossEm
 
       def text_input(text) = @play.text(text)
 
-      def theme_changed = @system_theme = system_theme
+      def theme_changed = @system_theme = read_system_theme
 
       # The window changed size, or moved to a screen of another density:
       # everything is measured again, and fonts are made at the new size
@@ -105,6 +105,7 @@ module CrossEm
       def sound(name, pitch: 1.0) = @speaker.play(name, pitch:)
       def copy(text) = @clipboard.copy(text)
       def dark? = Presentation::Appearance.dark?(@play.settings.appearance, @system_theme)
+      def system_theme = @system_theme
       def read(path) = File.read(File.join(ROOT, path), encoding: Encoding::UTF_8)
 
       def settings_changed(settings)
@@ -143,7 +144,7 @@ module CrossEm
 
       def palette = Presentation::Palette.for(dark?)
 
-      def system_theme
+      def read_system_theme
         ::Lota::Window.system_theme
       rescue StandardError
         :unknown

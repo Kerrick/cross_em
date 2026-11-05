@@ -22,14 +22,14 @@ module CrossEm
         @confetti = ConfettiPainter.new(pen)
       end
 
-      def draw(play, appearance:, muted:)
+      def draw(play, dark:, muted:)
         # Hard-edged lines: an edge on a pixel boundary stays sharp, and
         # the window's multisampling smooths the curves.
         G.line_style = :rough
         G.line_join = :miter
         paper(play.layout.paper)
         @board.draw(play)
-        @header.draw(play, appearance:, muted:)
+        @header.draw(play, dark:, muted:)
         @pool.draw(play)
         @panel.draw(play)
         @flights.draw(play)
