@@ -155,4 +155,12 @@ class LayoutTest < Minitest::Test
     assert_nil short.paper
     assert short.fits?(rect(0, 0, 1400, 330), units)
   end
+
+  def test_the_statistics_share_the_measure_of_the_row_under_them
+    tablet = layout(820, 1180, over: true)
+    stats, row = tablet.results.stats, tablet.results
+
+    assert_equal row.countdown.x, stats.first.x
+    assert_equal row.copy.right, stats.last.right
+  end
 end

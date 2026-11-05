@@ -139,7 +139,7 @@ module CrossEm
 
           if @over
             row = centered(inner, bottom - px(M.controls), px(M.controls))
-            stats = inner.with(y: row.y - @gap - px(@fit.stats), height: px(@fit.stats))
+            stats = centered(inner, row.y - @gap - px(@fit.stats), px(@fit.stats))
             top = stats.y - @gap
             if @pool
               pool_slots = shift(pool_slots, top - pool_height)
