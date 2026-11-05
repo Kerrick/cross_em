@@ -7,6 +7,19 @@ class SoundsTest < Minitest::Test
 
   def cues_of(game) = [].tap { |cues| game.subscribe { cues.concat(Sounds.for(it, game)) } }
 
+  def test_placed_letters_climb_the_scale_from_c_to_the_e_above
+    pitches = (1..12).map { Sounds.placed(it) }
+
+    assert_equal 1.0, pitches.first
+    assert_equal 2.5, pitches.last
+    assert_equal pitches.sort, pitches
+    assert pitches.all? { |pitch| Sounds::SCALE.any? { it == pitch } }
+  end
+
+  def test_putting_down_and_resetting_stay_in_the_scale
+    assert_equal [5 / 6r, 3 / 4r], [Sounds::PUT_DOWN, Sounds::RESET]
+  end
+
   def test_each_placed_letter_clacks_a_little_higher
     game = game()
     cues = cues_of(game)
@@ -28,6 +41,14 @@ class SoundsTest < Minitest::Test
 
     assert_equal %i[pick place check problem], cues.map(&:name)
     assert_operator cues.last.delay, :>, 0
+  end
+
+  def test_giving_up_with_letters_left_does_not_thunk_over_the_phrase
+    game = game(board: board("CZ"), pool: "..TSDOGTAGCA")
+    cues = cues_of(game)
+    game.give_up
+
+    assert_equal %i[check loss], cues.map(&:name)
   end
 
   def test_giving_up_swishes_and_ends_softly_after_the_sweep
