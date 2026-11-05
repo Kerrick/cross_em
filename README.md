@@ -133,12 +133,38 @@ and text and lines land exactly on pixels with nothing resampled.
 
 ## iPhone and iPad
 
-Lota's iOS support is experimental. Its maintainer builds an Xcode project
-("kit") for Cross ’em on CI. To play it on your own device, you open that
-project in Xcode, sign it with your Apple ID (a free account works, but the
-app must be re-installed every 7 days), and run it on a device connected by
-cable. The kit comes with step-by-step instructions, and
-`doc/playtest-questions.txt` lists what to report back.
+Lota's iOS support is an experiment, so Cross ’em for iPhone and iPad comes
+as an Xcode project (a "kit") that you build and sign yourself, on a Mac with
+Xcode and an Apple ID. This repository's
+[iOS kit workflow](.github/workflows/ios-kit.yml) makes the kit with Lota's
+iOS kit tooling.
+
+1. **Get the kit.** Download `CrossEm-ios.zip` and
+   `CrossEm-ios-SHA256SUMS.txt` from a tagged prerelease on the
+   [Releases page](https://github.com/Kerrick/cross_em/releases), or the
+   `ios-kit` artifact from a green run of the
+   [iOS kit workflow](https://github.com/Kerrick/cross_em/actions/workflows/ios-kit.yml).
+   Check it with `shasum -a 256 -c`, and unpack it with Finder or
+   `ditto -x -k CrossEm-ios.zip .`, which keep the symbolic links the
+   frameworks inside need.
+2. **Open** `CrossEm-ios/CrossEm.xcodeproj` in Xcode.
+3. **Sign it** with your Apple ID: Xcode > Settings > Apple Accounts, then
+   the CrossEm target's Signing & Capabilities, your team, and, if Xcode
+   refuses `com.kerricklong.CrossEm`, an identifier of your own. A free
+   Apple ID works, but the app stops launching after 7 days until you run
+   it from Xcode again.
+4. **Prepare the device:** connect it by cable, trust the Mac, and turn on
+   Developer Mode (Settings > Privacy & Security).
+5. **Run** with the device as the destination. The first launch may stop at
+   "Untrusted Developer": trust your Apple ID on the device under Settings >
+   General > VPN & Device Management, and run again.
+
+`README.txt` inside the kit has every step in detail, and
+`CrossEm-results.txt` beside it holds the playtest questions
+(`doc/playtest-questions.txt`) to answer and send back. CI builds the kit,
+builds it again on a fresh Mac, and plays it in iPhone and iPad Simulators;
+nobody has yet run it on a real device. [PACKAGING.md](PACKAGING.md#iphone-and-ipad)
+says what CI checked and what it didn't.
 
 ## Credits and licenses
 
