@@ -11,10 +11,9 @@ module CrossEm
     #
     # The rules change on the tap. Nothing here waits for an animation.
     class Play
-      M = Look::METRICS
       T = Look::TIMING
 
-      attr_reader :game, :settings, :gesture, :time, :units, :motion
+      attr_reader :game, :settings, :time, :units, :motion
 
       # +host+ answers sound(name), copy(text) (true if it worked),
       # settings_changed(settings),
@@ -24,6 +23,7 @@ module CrossEm
         @time = 0.0
         @sheets = []
         @layouts = {}
+        @pointers = PointerMap.new(self)
         @sheet_layouts = {}
         self.game = game
       end
@@ -34,7 +34,7 @@ module CrossEm
         @choreographer = Choreographer.new(self, game, @motion)
         @view = nil
         @armed_at = @copied_at = @copy_failed_at = @stats = nil
-        @gesture = nil
+        @pointers.cancel
       end
 
       # The window's size and safe area in pixels, its Units, and the
@@ -122,53 +122,17 @@ module CrossEm
         end
       end
 
-      # --- Pointers ---
+      # --- Pointers (PointerMap) and keys (KeyMap) ---
 
-      def pointer(event)
-        case event.phase
-        when :pressed then press(event)
-        when :moved then move(event)
-        when :released then release(event)
-        end
-      end
+      def pointer(event) = @pointers.pointer(event)
+      def press(pointer) = @pointers.press(pointer)
+      def move(pointer) = @pointers.move(pointer)
+      def release(pointer) = @pointers.release(pointer)
+      def wheel(dx, dy) = @pointers.wheel(dx, dy)
+      def gesture = @pointers.gesture
 
-      def press(pointer)
-        return if @gesture
-
-        target = target_at(pointer.x, pointer.y)
-        @gesture = Gesture.start(pointer, target)
-        pick(target[1]) if target[0] == :slot
-      end
-
-      def move(pointer)
-        return unless @gesture&.id == pointer.id
-
-        before = @gesture
-        @gesture = before.moved(pointer.x, pointer.y, units.px(M.drag))
-        return unless @gesture.dragging
-
-        from_x, from_y = before.dragging ? [before.x, before.y] : [before.start_x, before.start_y]
-        drag(@gesture.target, pointer.x - from_x, pointer.y - from_y)
-      end
-
-      def release(pointer)
-        return unless @gesture&.id == pointer.id
-
-        gesture = @gesture.moved(pointer.x, pointer.y, units.px(M.drag))
-        @gesture = nil
-        tapped(gesture) if gesture.tap?
-      end
-
-      # A mouse wheel or a trackpad's two fingers: scrolls a sheet, or pans
-      # the board.
-      def wheel(dx, dy)
-        step = units.px(40)
-        if sheet? then scroll_sheet(-dy * step)
-        else pan(-dx * step, dy * step)
-        end
-      end
-
-      # --- Keys (KeyMap) ---
+      # What the mouse pointer should look like over (+x+, +y+).
+      def cursor_at(x, y) = @pointers.cursor_at(x, y)
 
       def text(text) = KeyMap.text(self, text)
       def key(key, command: false) = KeyMap.key(self, key, command:)
@@ -203,20 +167,6 @@ module CrossEm
 
         last = @choreographer.last_placed || game.board.positions.last
         tap_cell(last) if last
-      end
-
-      # What the mouse pointer should look like over (+x+, +y+): a hand
-      # over anything a click would do something to, a four-way arrow over
-      # a board that pans, else the arrow.
-      def cursor_at(x, y)
-        case target_at(x, y)
-        in [:button, name] then enabled?(name) ? :hand : :arrow
-        in [:slot, index] then game.playing? && game.pool.letter?(index) ? :hand : :arrow
-        in [:board] then board_cursor(shown_view.cell_at(x, y))
-        in [:sheet, :close | :scrim] then :hand
-        in [:sheet, :body] then sheet_layout.control_at(x, y, sheet.scroll) ? :hand : :arrow
-        else :arrow
-        end
       end
 
       def press_button(name)
@@ -330,68 +280,6 @@ module CrossEm
       end
 
       def disarm = @armed_at = nil
-
-      # What is under (+x+, +y+): a sheet's part while one is open, else a
-      # button, a pool slot, the board, or nothing.
-      def target_at(x, y)
-        return sheet_target_at(x, y) if sheet?
-
-        layout.header_buttons.each { |name, rect| return [:button, name] if rect.contains?(x, y) }
-        layout.controls&.each { |name, rect| return [:button, name] if rect.contains?(x, y) }
-        if (results = layout.results)
-          return [:button, :copy] if results.copy.contains?(x, y)
-          return [:button, :next] if results.countdown.contains?(x, y) && next_day
-        end
-        layout.pool.each_with_index { |rect, i| return [:slot, i] if rect.contains?(x, y) }
-        return [:board] if layout.board.contains?(x, y)
-
-        [:none]
-      end
-
-      def sheet_target_at(x, y)
-        sheet = sheet_layout
-        if sheet.close.contains?(x, y) then [:sheet, :close]
-        elsif sheet.body.contains?(x, y) then [:sheet, :body]
-        elsif sheet.card.contains?(x, y) then [:sheet, :card]
-        else [:sheet, :scrim]
-        end
-      end
-
-      def board_cursor(cell)
-        if game.playing? && cell && (game.selected ? game.board.target?(cell) : game.board.occupied?(cell)) then :hand
-        elsif shown_view.pannable? then :sizeall
-        else :arrow
-        end
-      end
-
-      def drag(target, dx, dy)
-        case target
-        in [:board] then pan(dx, dy)
-        in [:sheet, _] then scroll_sheet(-dy)
-        else nil
-        end
-      end
-
-      def tapped(gesture)
-        case gesture.target
-        in [:board] then tap_cell(shown_view.cell_at(gesture.start_x, gesture.start_y))
-        in [:button, name] then press_button(name) if target_at(gesture.x, gesture.y) == gesture.target
-        in [:sheet, :close | :scrim] then close_sheet
-        in [:sheet, :body]
-          control = sheet_layout.control_at(gesture.x, gesture.y, sheet.scroll)
-          sheet_control(control.id) if control
-        else nil
-        end
-      end
-
-      def sheet_control(id)
-        case id
-        when :close then close_sheet
-        when :credits then open(:credits)
-        else toggle(id)
-        end
-      end
-
     end
   end
 end
