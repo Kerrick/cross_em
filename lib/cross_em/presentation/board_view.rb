@@ -20,23 +20,26 @@ module CrossEm
       M = Look::METRICS
 
       # The letters' bounds and one ring around them; on an empty board,
-      # the origin and its ring.
-      def self.content_of(board)
-        bounds = board.bounds || Bounds.new(left: 0, top: 0, right: 0, bottom: 0)
-        Bounds.new(left: bounds.left - 1, top: bounds.top - 1, right: bounds.right + 1, bottom: bounds.bottom + 1)
+      # the origin and its ring. Any +extra+ cells, such as a typed word's
+      # place being shown, are framed with their ring too.
+      def self.content_of(board, extra = [])
+        cells = board.positions + extra
+        cells = [Position::ORIGIN] if cells.empty?
+        columns, rows = cells.map(&:column).minmax, cells.map(&:row).minmax
+        Bounds.new(left: columns.first - 1, top: rows.first - 1, right: columns.last + 1, bottom: rows.last + 1)
       end
 
       # The view of +content+ in +viewport+. With a +previous+ view whose
       # cells are as big, the content stays where it was rather than
-      # jumping to the middle; with a +focus+, that cell is brought into
-      # view.
+      # jumping to the middle; with a +focus+, that cell (or each of
+      # several, the last winning) is brought into view.
       def self.fit(viewport:, content:, units:, focus: nil, previous: nil)
         pad = units.px(M.board_pad)
         room = [viewport.width - (2 * pad), viewport.height - (2 * pad)]
         cell = [room[0] / content.width, room[1] / content.height].min.clamp(units.px(M.cell_min), units.px(M.cell_max))
         view = new(viewport:, cell:, x: 0, y: 0, content:, pad:).centered
         view = view.with(x: previous.x, y: previous.y) if previous&.cell == cell && view.pannable?
-        view = view.reveal(focus) if focus
+        (focus.is_a?(Array) ? focus : [focus].compact).each { view = view.reveal(it) }
         view.clamped
       end
 

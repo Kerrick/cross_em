@@ -93,4 +93,10 @@ class BoardViewTest < Minitest::Test
       assert view.reveal(corner).clamped.visible?(corner), "#{corner} reachable"
     end
   end
+
+  def test_extra_cells_are_framed_with_the_letters
+    content = BoardView.content_of(board("CAT"), [at(1, -3)])
+
+    assert_equal Bounds.new(left: -1, top: -4, right: 3, bottom: 1), content
+  end
 end
