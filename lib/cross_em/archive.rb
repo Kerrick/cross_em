@@ -7,6 +7,9 @@ module CrossEm
   # Lota's save folder; tests hand it a Memory.
   class Archive
     FILE = "records.json"
+    # Each save is written here first and read back, and only then over
+    # FILE, so a save cut short leaves one good copy.
+    NEW = "records.json.new"
     FORMAT = 1
 
     # A storage that keeps files in a Hash, for tests and for a game that
@@ -69,14 +72,28 @@ module CrossEm
 
     def save(record)
       @records[record.number] = record
-      @storage.write(FILE, Archive.text_of(@records.values))
+      text = Archive.text_of(@records.values)
+      @storage.write(NEW, text)
+      @storage.write(FILE, text) if @storage.read(NEW) == text
+      record
+    rescue Unreadable
       record
     end
 
     private
 
+    # The records in FILE, or, if FILE is missing or damaged, in the copy
+    # a save left in NEW before it was cut short.
     def load
-      text = @storage.read(FILE) or return {}
+      parse(@storage.read(FILE) || @storage.read(NEW))
+    rescue *DAMAGED
+      backup = @storage.read(NEW) or raise
+      parse(backup)
+    end
+
+    def parse(text)
+      return {} unless text
+
       JSON.parse(text).fetch("days").to_h { |hash| [hash.fetch("number"), Record.from_h(hash)] }
     end
   end

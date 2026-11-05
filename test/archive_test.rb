@@ -51,4 +51,19 @@ class ArchiveTest < Minitest::Test
     assert_nil storage.written(Archive::FILE)
     assert_equal 1, archive.size, "the session still plays"
   end
+
+  def test_a_save_is_written_aside_and_read_back_before_it_replaces_the_file
+    storage = Archive::Memory.new
+    Archive.new(storage).save(played_record)
+
+    assert_equal storage.read(Archive::NEW), storage.read(Archive::FILE)
+  end
+
+  def test_a_save_cut_short_is_recovered_from_its_copy
+    storage = Archive::Memory.new
+    Archive.new(storage).save(played_record)
+    storage.write(Archive::FILE, '{"format": 1, "da')
+
+    assert_equal 1, Archive.open(storage, now: NOW).size
+  end
 end
