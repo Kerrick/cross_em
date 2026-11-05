@@ -195,4 +195,15 @@ class GameTest < Minitest::Test
     assert_equal [Events::Placed, Events::Checked, Events::Won], events.map(&:class)
     assert_predicate game, :won?
   end
+
+  def test_a_listener_can_stop_listening
+    game = game()
+    heard = []
+    listener = ->(event) { heard << event }
+    game.subscribe(listener)
+    game.unsubscribe(listener)
+    game.tap_slot(0)
+
+    assert_empty heard
+  end
 end

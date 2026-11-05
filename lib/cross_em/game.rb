@@ -30,6 +30,13 @@ module CrossEm
       self
     end
 
+    # Stops telling +listener+ anything, as when the screen moves on to
+    # another game.
+    def unsubscribe(listener)
+      @listeners.delete(listener)
+      self
+    end
+
     def playing? = status == :playing
     def won? = status == :won
     def lost? = status == :lost
