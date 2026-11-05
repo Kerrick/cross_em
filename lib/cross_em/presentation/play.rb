@@ -90,7 +90,8 @@ module CrossEm
       def countdown = Countdown.between(@clock.now, game.day.ends_at)
 
       # The day a finished game makes way for, once its clock runs out.
-      def next_day = countdown.done? ? @clock.today : nil
+      # A game in progress keeps its day, however late it gets.
+      def next_day = game.over? && countdown.done? ? @clock.today : nil
 
       def armed? = @armed_at && @time - @armed_at < T.give_up_confirm
       def copied? = @copied_at && @time - @copied_at < T.copied

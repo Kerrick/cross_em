@@ -179,4 +179,14 @@ class PlayTest < Minitest::Test
 
     assert_equal :arrow, play.cursor_at(reset.center_x, reset.center_y), "nothing to reset yet"
   end
+
+  def test_a_game_in_progress_keeps_its_day_past_midnight
+    day = Day.numbered(1720)
+    play = play(game: game(day:), clock: Clock.pretending(day.succ.date))
+    play.key(:return)
+    play.press_button(:next)
+
+    assert_nil play.next_day
+    assert_equal 0, @host.next_days
+  end
 end
