@@ -13,6 +13,6 @@ module CrossEm
 end
 
 %w[
-  units rect color palette appearance settings look layout board_view copy sheet input clock shot_schedule
+  units rect color palette appearance settings look layout board_view copy reflow sheet input clock shot_schedule
   script sounds play
 ].each { require_relative "presentation/#{it}" }

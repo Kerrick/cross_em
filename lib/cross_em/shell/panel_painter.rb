@@ -38,8 +38,7 @@ module CrossEm
       def status(status, rect)
         palette = @pen.palette
         font = @pen.type.status
-        _, lines = font.wrap(status.text, rect.width)
-        lines = lines.first(2)
+        lines = lines(status.text, font, rect.width)
         small = @pen.type.reason
         extra = status.reasons.empty? ? status.detail : reasons(status.reasons, small, rect.width)
         line = (font.height * 1.15).round
@@ -52,6 +51,16 @@ module CrossEm
 
         color = status.reasons.empty? ? palette.ink_muted : palette.problem
         @pen.text(extra, small, rect.x + ((rect.width - small.width(extra)) / 2.0), top + (lines.size * line) + @pen.px(2), color)
+      end
+
+      # One line if it fits; else a line a sentence, so a line never ends
+      # with a lone word; at most two.
+      def lines(text, font, width)
+        return [text] if font.width(text) <= width
+
+        sentences = text.split(/(?<=\.) /)
+        sentences = font.wrap(text, width)[1] if sentences.size < 2 || sentences.any? { font.width(it) > width }
+        sentences.first(2)
       end
 
       # As many reasons as fit on one line, then how many more.

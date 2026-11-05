@@ -33,4 +33,11 @@ class SettingsTest < Minitest::Test
     assert_equal Time.utc(2026, 1, 2, 14, 30, 5), clock.now(real)
     assert_equal Day.new(date: Date.new(2026, 1, 2)), clock.today(real)
   end
+
+  def test_a_clock_can_start_at_a_moment_and_run_on
+    real = Time.utc(2026, 11, 5, 14, 0, 0)
+    clock = Clock.starting_at(Time.utc(2026, 11, 7, 23, 59, 58), real)
+
+    assert_equal Time.utc(2026, 11, 8, 0, 0, 1), clock.now(real + 3)
+  end
 end

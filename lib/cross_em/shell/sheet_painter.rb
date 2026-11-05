@@ -26,7 +26,10 @@ module CrossEm
         @pen.fill(layout.title.with(y: layout.title.bottom - 1, height: 1), palette.rule)
 
         body(play, layout, sheet.scroll)
-        scrollbar(layout, sheet.scroll) if layout.scrolls?
+        return unless layout.scrolls?
+
+        fades(layout, sheet.scroll)
+        scrollbar(layout, sheet.scroll)
       end
 
       private
@@ -43,12 +46,12 @@ module CrossEm
         body = layout.body
         top = body.y - scroll
         @pen.clip(body) do
+          line_height = @pen.type.line_height(:license)
           layout.lines.each do |line|
             y = top + line.y
-            font = @pen.type.style(line.style)
-            next if y + font.height < body.y || y > body.bottom
+            next if y + line_height < body.y || y > body.bottom
 
-            @pen.text(line.text, font, body.x + line.x, y, color(line.style))
+            mark(line, body, y, line_height)
           end
           layout.controls.each do |control|
             rect = control.rect.offset(body.x, top)
@@ -56,6 +59,17 @@ module CrossEm
 
             control.kind == :toggle ? toggle(rect, control, play.settings) : button(rect, control, play)
           end
+        end
+      end
+
+      # A line of text, or a license's rule, or the bar beside a quote.
+      def mark(line, body, y, line_height)
+        case line.style
+        when :rule then @pen.fill(Presentation::Rect.new(x: body.x, y:, width: body.width, height: 1), @pen.palette.rule)
+        when :quote
+          @pen.fill(Presentation::Rect.new(x: body.x + line.x, y:, width: @pen.stroke(2), height: line_height),
+                    @pen.palette.rule)
+        else @pen.text(line.text, @pen.type.style(line.style), body.x + line.x, y, color(line.style))
         end
       end
 
@@ -81,10 +95,13 @@ module CrossEm
         detail = @pen.type.style(:small)
         switch = Presentation::Rect.new(x: rect.right - @pen.px(52), y: (rect.center_y - @pen.px(16)).round,
                                         width: @pen.px(52), height: @pen.px(32))
-        total = label.height + detail.height
+        _, lines = detail.wrap(control.detail, switch.x - rect.x - @pen.px(12))
+        total = label.height + (lines.size * detail.height)
         top = rect.y + ((rect.height - total) / 2)
         @pen.text(control.text, label, rect.x, top, palette.ink)
-        @pen.text(control.detail, detail, rect.x, top + label.height, palette.ink_muted)
+        lines.each_with_index do |line, i|
+          @pen.text(line, detail, rect.x, top + label.height + (i * detail.height), palette.ink_muted)
+        end
         radius = switch.height / 2
         if on
           @pen.fill(switch, palette.target, radius:)
@@ -96,6 +113,21 @@ module CrossEm
         x = on ? switch.right - @pen.px(4) - knob : switch.x + @pen.px(4)
         @pen.fill(Presentation::Rect.new(x:, y: switch.y + @pen.px(4), width: knob, height: knob),
                   on ? palette.card : palette.ink_muted, radius: knob / 2)
+      end
+
+      # The body's text fades into the card at an edge with more beyond
+      # it, so a cut line reads as "more" rather than as a mistake.
+      def fades(layout, scroll)
+        body = layout.body
+        depth = @pen.px(18)
+        card = @pen.palette.card
+        full = Presentation::Rect.new(x: layout.card.x + 1, y: 0, width: layout.card.width - 2, height: 1)
+        depth.times do |i|
+          alpha = ((depth - i) / depth.to_f)**1.6
+          @pen.fill(full.with(y: body.y + i), card, alpha:) if scroll.positive?
+          @pen.fill(full.with(y: body.bottom - 1 - i - @pen.px(8)), card, alpha:) if scroll < layout.most_scroll
+        end
+        @pen.fill(full.with(y: body.bottom - @pen.px(8), height: @pen.px(8) - @pen.px(16) / 2), card) if scroll < layout.most_scroll
       end
 
       def scrollbar(layout, scroll)

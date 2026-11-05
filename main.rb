@@ -23,7 +23,8 @@
 #                               a run starts from nothing and never touches
 #                               the player's saves.
 #   CROSS_EM_TODAY=2026-11-07   plays as if that UTC date were today, at
-#                               the real time of day.
+#                               the real time of day; with a time, as in
+#                               2026-11-07T23:59:50Z, from that moment on.
 #   CROSS_EM_WINDOW=390x844     opens the window at this size, in points
 #                               (390x844 an iPhone, 1366x1024 an iPad on
 #                               its side).

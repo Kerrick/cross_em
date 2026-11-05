@@ -44,7 +44,7 @@ module CrossEm
         end
       end
 
-      def line_height(style) = (style(style).height * (style == :license ? 1.25 : 1.35)).round
+      def line_height(style) = (style(style).height * (style == :license ? 1.08 : 1.18)).round
 
       def wrap(style, text, width)
         _, lines = style(style).wrap(text, width)

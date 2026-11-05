@@ -165,9 +165,14 @@ module CrossEm
 
       # --- Development settings (main.rb lists them) ---
 
+      # CROSS_EM_TODAY=2026-11-07 for that date at the real time of day, or
+      # CROSS_EM_TODAY=2026-11-07T23:59:50Z for that moment, running on.
       def clock
-        Presentation::Clock.pretending(Date.iso8601(@env.fetch("CROSS_EM_TODAY")))
-      rescue KeyError, Date::Error
+        text = @env.fetch("CROSS_EM_TODAY")
+        return Presentation::Clock.starting_at(Time.iso8601(text)) if text.include?("T")
+
+        Presentation::Clock.pretending(Date.iso8601(text))
+      rescue KeyError, ArgumentError, Date::Error
         Presentation::Clock.real
       end
 

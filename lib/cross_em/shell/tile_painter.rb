@@ -73,7 +73,7 @@ module CrossEm
         width = @pen.stroke(1.5)
         @pen.clip(area) do
           (area.x - area.height).step(area.right, spacing) do |x|
-            @pen.line(@pen.palette.problem, width, x, area.bottom, x + area.height, area.y, alpha: 0.38 * alpha)
+            @pen.line(@pen.palette.problem, width, x, area.bottom, x + area.height, area.y, alpha: 0.32 * alpha)
           end
         end
       end

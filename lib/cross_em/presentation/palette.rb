@@ -14,7 +14,7 @@ module CrossEm
       hex = Color.method(:hex)
 
       LIGHT = new(
-        page: hex["#F3EDE2"], page_shade: hex["#E7DECF"], grid_dot: hex["#D9CFBC"], rule: hex["#D9CFBC"],
+        page: hex["#F3EDE2"], page_shade: hex["#E7DECF"], grid_dot: hex["#D3C7B0"], rule: hex["#D9CFBC"],
         ink: hex["#1F1A14"], ink_muted: hex["#6B6256"], card: hex["#FAF6EE"], scrim: hex["#1F1A14", 0.42],
         shadow: hex["#3A2A12", 0.16],
         tile_face: hex["#FBF4E3"], tile_edge: hex["#D3BF97"], tile_letter: hex["#1F1A14"],
@@ -25,7 +25,7 @@ module CrossEm
       )
 
       DARK = new(
-        page: hex["#14171D"], page_shade: hex["#0E1014"], grid_dot: hex["#2A2F3A"], rule: hex["#2A2F3A"],
+        page: hex["#14171D"], page_shade: hex["#0E1014"], grid_dot: hex["#353C4A"], rule: hex["#2A2F3A"],
         ink: hex["#ECE6DA"], ink_muted: hex["#9AA0AC"], card: hex["#1B1F27"], scrim: hex["#05070A", 0.62],
         shadow: hex["#000000", 0.4],
         tile_face: hex["#E9DFC8"], tile_edge: hex["#A8956F"], tile_letter: hex["#1F1A14"],

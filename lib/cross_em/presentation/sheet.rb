@@ -121,24 +121,37 @@ module CrossEm
           text(:body, text, indent:, after: px(8))
         end
 
-        # A license file as it is written, line for line, each wrapped on
-        # its own when the sheet is narrower than the file.
+        # A license file, every word of it, with its paragraphs reflowed to
+        # the sheet's width (Reflow), its indents and quotes kept, and its
+        # lines of dashes drawn as rules.
         def license(text)
           @y += px(6)
           height = @measure.line_height(:license)
-          text.each_line(chomp: true) do |line|
-            next @y += height / 2 if line.strip.empty?
-
-            @measure.wrap(:license, line, @width).each do |part|
-              @lines << Line.new(style: :license, text: part, x: 0, y: @y)
+          Reflow.parse(text).each do |piece|
+            case piece
+            when Reflow::Gap then @y += (height * 0.6).round
+            when Reflow::Rule
+              @lines << Line.new(style: :rule, text: "", x: 0, y: @y + (height / 2))
               @y += height
+            when Reflow::Text then license_text(piece, height)
             end
           end
           @y += px(6)
         end
 
+        def license_text(piece, height)
+          indent = [piece.indent, 8].min * px(4)
+          quoted = piece.quote.empty? ? 0 : px(12)
+          @measure.wrap(:license, piece.text, @width - indent - quoted).each do |part|
+            @lines << Line.new(style: :quote, text: "", x: indent, y: @y) if quoted.positive?
+            @lines << Line.new(style: :license, text: part, x: indent + quoted, y: @y)
+            @y += height
+          end
+        end
+
         def toggle(block)
-          height = [px(M.touch) + px(12), @measure.line_height(:body) + @measure.line_height(:small) + px(16)].max
+          detail = @measure.wrap(:small, block.detail, @width - px(64)).size
+          height = [px(M.touch) + px(12), @measure.line_height(:body) + (detail * @measure.line_height(:small)) + px(16)].max
           rect = Rect.new(x: 0, y: @y, width: @width, height:)
           @controls << Control.new(id: block.id, kind: :toggle, rect:, text: block.text, detail: block.detail,
                                    primary: false)
