@@ -24,18 +24,30 @@ module CrossEm
 
       private
 
+      # The wordmark and the number at their sizes if they fit beside the
+      # buttons; else in smaller type; else the wordmark alone.
       def wordmark(rect, number)
         palette = @pen.palette
-        font = @pen.type.wordmark
+        font, small = fit(rect.width, number)
         top = @pen.middle_top(font, rect.center_y).round
         x = rect.x
         [["Cross ", palette.ink], ["’", palette.target], ["em", palette.ink]].each do |part, color|
           @pen.text(part, font, x, top, color)
           x += font.width(part)
         end
-        small = @pen.type.number
-        baseline = top + font.ascent
-        @pen.text(number, small, x + @pen.px(10), baseline - small.ascent, palette.ink_muted)
+        return unless small
+
+        @pen.text(number, small, x + @pen.px(10), top + font.ascent - small.ascent, palette.ink_muted)
+      end
+
+      def fit(room, number)
+        sizes = Presentation::Look::SIZES
+        [[sizes.wordmark, sizes.number], [sizes.wordmark - 5, sizes.number - 2]].each do |mark, label|
+          font = @pen.type.fonts.slab(@pen.px(mark))
+          small = @pen.type.fonts.sans(@pen.px(label))
+          return [font, small] if font.width("Cross ’em") + @pen.px(10) + small.width(number) <= room - @pen.px(8)
+        end
+        [@pen.type.fonts.slab(@pen.px(sizes.wordmark - 5)), nil]
       end
 
       def icon_box(rect) = rect.inset(@pen.px(11))
