@@ -115,7 +115,7 @@ The files appear in `dist/`, which git ignores. On Windows, Fledge's runtime inc
 
 ## The icon
 
-`script/make_icon.rb` draws the icon in code, in pure Ruby: five ivory tiles in a "+" on a rounded square of ink blue, from the palette in `doc/design.md`. Every size is drawn sharp, not scaled. It writes `icons/icon-16.png` through `icons/icon-1024.png`, `icons/icon.ico`, and, on a Mac, `icons/icon.icns` (with `iconutil`). The generated files are committed, so CI needs no tools to make them. The icon is released under CC0 (see `LICENSES/ICONS.md`).
+`script/make_icon.rb` draws the icon in code, in pure Ruby: ivory letter tiles on a rounded square of ink blue, from the palette in `doc/design.md`, spelling CROSS across and REM down from its R (three bigger tiles, the first lettered C, below 128 px). It fills the letters from the game's own Zilla Slab Bold, reading the font file itself. Every size is drawn sharp, not scaled. It writes `icons/icon-16.png` through `icons/icon-1024.png`, `icons/icon.ico`, and, on a Mac, `icons/icon.icns` (with `iconutil`). The generated files are committed, so CI needs no tools to make them. The icon is released under CC0 (see `LICENSES/ICONS.md`).
 
 ## iOS
 
