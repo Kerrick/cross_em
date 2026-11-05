@@ -131,4 +131,28 @@ class LayoutTest < Minitest::Test
     assert_operator cramped.pool.first.width, :<, 44
     assert_equal 6, cramped.pool.map(&:y).tally.values.first
   end
+
+  def test_a_very_wide_window_sets_the_game_on_a_centred_page
+    wide = layout(1536, 864)
+
+    assert_equal rect(178, 16, 1180, 832), wide.paper
+    all_rects(wide).each { assert wide.paper.contains?(it.x, it.y) && it.right <= wide.paper.right, it.inspect }
+    assert_operator wide.board.x, :>, wide.paper.x
+  end
+
+  def test_tablets_laptops_and_phones_use_the_whole_window
+    [[390, 844, 3], [844, 390, 3], [820, 1180, 2], [1366, 1024, 2], [1280, 800, 2]].each do |width, height, density|
+      size = {width: width * density, height: height * density}
+      units = Units.for_window(density:, **size)
+
+      assert_nil Layout.for(**size, units:).paper, "#{width}x#{height}"
+    end
+  end
+
+  def test_a_wide_but_short_window_gives_up_the_page_before_the_board
+    short = layout(1400, 330)
+
+    assert_nil short.paper
+    assert short.fits?(rect(0, 0, 1400, 330), units)
+  end
 end

@@ -13,9 +13,13 @@ module CrossEm
     # stays only while letters are left in it.
     #
     # Everything stays inside +safe+, the part of the window that no
-    # notch, rounded corner or home indicator covers.
+    # notch, rounded corner or home indicator covers. In a window much
+    # wider than the game needs, everything is set on a +paper+: a page
+    # no wider than Look's page_max, centred, so the board and the column
+    # sit together rather than at the window's far edges. Elsewhere
+    # +paper+ is nil and the page is the whole window.
     class Layout < Data.define(:width, :height, :landscape, :header, :wordmark, :help_button, :theme_button,
-                               :sound_button, :board, :status, :pool, :controls, :results)
+                               :sound_button, :board, :status, :pool, :controls, :results, :paper)
       # The buttons under the pool while the game is played.
       class Controls < Data.define(:shuffle, :reset, :give_up)
         def each(&) = [[:shuffle, shuffle], [:reset, reset], [:give_up, give_up]].each(&)
@@ -38,17 +42,40 @@ module CrossEm
         *[36, 30, 24].map { Fit.new(gap: 8, tile_gap: 4, heading: 52, stats: 50, pool_max: it) }
       ].freeze
 
-      # The layout for a window: upright or wide as its shape suggests,
+      # The layout for a window: on paper if the window is wide enough
+      # and everything fits on it; upright or wide as its shape suggests,
       # as roomy as leaves the board at least one whole cell and keeps
       # everything on screen; failing that, the other way round; failing
       # that, whichever leaves the board the most room.
       def self.for(width:, height:, units:, safe: nil, over: false, pool: true)
         safe = Rect.new(x: 0, y: 0, width:, height:) if safe.nil? || safe.empty?
+        if (paper = paper(safe, units))
+          on_paper = plan(width:, height:, units:, safe: paper.inset(units.stroke(1)), over:, pool:)
+          return on_paper.with(paper:) if on_paper.fits?(paper.inset(units.stroke(1)), units)
+        end
+        plan(width:, height:, units:, safe:, over:, pool:)
+      end
+
+      # Upright or wide as +safe+'s shape suggests, as roomy as fits;
+      # failing that, the other way round; failing that, whichever leaves
+      # the board the most room.
+      def self.plan(width:, height:, units:, safe:, over:, pool:)
         natural = Planner.landscape?(safe, units)
         plans = [natural, !natural].product(FITS).lazy.map do |landscape, fit|
           Planner.new(width:, height:, units:, safe:, over:, pool:, landscape:, fit:).layout
         end
         plans.find { it.fits?(safe, units) } || plans.max_by { [it.board.width, it.board.height].min }
+      end
+
+      # The page the game is set on, when +safe+ is wider than a page
+      # with a wide margin either side: page_max wide, centred, a margin
+      # from the top and bottom. Otherwise nil.
+      def self.paper(safe, units)
+        width = units.px(M.page_max)
+        return if safe.width < width + (2 * units.px(M.page_margin))
+
+        inset = units.px(M.margin)
+        Rect.new(x: safe.x + ((safe.width - width) / 2), y: safe.y + inset, width:, height: safe.height - (2 * inset))
       end
 
       # The least room the board may have: one smallest cell and the
@@ -89,7 +116,7 @@ module CrossEm
           parts = @landscape ? side_column(header) : bottom_stack(header)
           Layout.new(width: @width, height: @height, landscape: @landscape, header:,
                      wordmark: header.with(width: help.x - header.x), help_button: help, theme_button: theme,
-                     sound_button: sound, **parts)
+                     sound_button: sound, paper: nil, **parts)
         end
 
         private

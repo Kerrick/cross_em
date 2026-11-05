@@ -23,12 +23,11 @@ module CrossEm
       end
 
       def draw(play, appearance:, muted:)
-        page = @pen.palette.page
-        G.clear(page.r, page.g, page.b, 1.0)
         # Hard-edged lines: an edge on a pixel boundary stays sharp, and
         # the window's multisampling smooths the curves.
         G.line_style = :rough
         G.line_join = :miter
+        paper(play.layout.paper)
         @board.draw(play)
         @header.draw(play, appearance:, muted:)
         @pool.draw(play)
@@ -36,6 +35,23 @@ module CrossEm
         @flights.draw(play)
         @confetti.draw(play)
         @sheet.draw(play)
+      end
+
+      private
+
+      # The page: the whole window, or, in a very wide one, a sheet of
+      # paper lying on a darker desk, with a soft shadow and a hairline
+      # edge.
+      def paper(rect)
+        palette = @pen.palette
+        ground = rect ? palette.page_shade : palette.page
+        G.clear(ground.r, ground.g, ground.b, 1.0)
+        return unless rect
+
+        radius = @pen.px(6)
+        @pen.fill(rect.offset(0, @pen.px(3)), palette.shadow, radius:)
+        @pen.fill(rect, palette.page, radius:)
+        @pen.outline(rect, palette.rule, radius:)
       end
     end
   end
