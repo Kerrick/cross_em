@@ -199,4 +199,16 @@ class PlayTest < Minitest::Test
     assert_equal Copy::COPY_FAILED, play.label(:copy)
     refute_includes @host.sounds, :copied
   end
+
+  def test_a_new_game_forgets_the_press_and_the_lift_of_the_last
+    play = play()
+    play.press(Pointer.new(phase: :pressed, id: 1, x: 5.0, y: 300.0))
+    play.pick(0)
+    play.game = game(day: Day.numbered(1721))
+
+    assert_nil play.gesture
+    tap_rect(play, play.layout.pool[3])
+
+    assert_equal 3, play.game.selected, "a tap is heard at once"
+  end
 end

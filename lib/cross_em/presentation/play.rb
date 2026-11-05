@@ -35,6 +35,7 @@ module CrossEm
         @motion = Motion.new(calm: @settings.calm).tap { it.update(@time) }
         @view = nil
         @armed_at = @copied_at = @copy_failed_at = @stats = nil
+        @gesture = @lifted_slot = nil
         game.subscribe { changed(it) }
       end
 
