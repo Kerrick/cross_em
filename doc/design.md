@@ -195,14 +195,38 @@ jumps, and there is no confetti.
 ## Sound (`Presentation::Synth`, `Presentation::Sounds`)
 
 Synthesised in Ruby as the game starts (one sound a frame, so the first frames
-don't stall), so there are no audio files and nothing to license: a wooden
-"tock" to pick up (lower to put down), a clack to place (pitch rising slightly
-with each letter on the grid), a lighter tick to return, a rattle to shuffle
-(lower for a reset), a paper swish for the check, a muted thunk for problems,
-a rising four-note chime for a win, a gentle falling two-note phrase for a
-loss, a soft click for buttons, and a bright ding for "copied". The speaker
-button in the header mutes; the game plays identically muted, and without an
-audio device.
+don't stall), so there are no audio files and nothing to license. Felt-covered
+wooden tiles and a soft marimba: warm and round, with presence but never a
+punch (Saffer: feedback should fit the moment and be no more than it needs).
+
+- A soft marimba G to pick up (down a third, to E, to put down), a marimba C
+  with a thump of wood to place (climbing the scale, C to the E an octave up,
+  as the grid fills), a lighter D to return, four soft taps tumbling to
+  shuffle (a fourth lower for a reset), a breath of paper under the check's
+  sweep, a muted low thunk for problems as the sweep ends, rounded bells
+  rising C–E–G–C over a low C for a win, E settling to C for a loss, a tiny
+  tap for buttons, and two small bells for "copied".
+- Every voice is sines: a body with gentle second and third partials (a bell
+  adds a faint inharmonic one), a soft attack of 8 ms or more, an exponential
+  decay, and a low-pass, 1.5–4 kHz. No square, saw or raw noise; the check's
+  breath is noise kept to a band around 900 Hz. Under 0.1% of any sound's
+  energy is above 6 kHz.
+- Every pitch is from C major pentatonic, so sounds that happen to ring
+  together agree.
+- Each sound is as loud as it matters, by its peak: a button −20 dBFS, pick
+  and return −18, shuffle −17, place −14, the check −19, problems and
+  "copied" −16, a loss −12, a win −8. Voices play at full volume, and a whole
+  game mixed (SoundsTest) peaks at the win's −8 dBFS, leaving headroom for
+  any overlap.
+- One action, one sound, or a phrase in order: the last letter's clack, then
+  the check's breath swelling under it, then the thunk or the ending once the
+  sweep has passed. Giving up plays the loss alone, without a thunk. The same
+  sound asked for twice within 30 ms plays once, a free voice is preferred to
+  cutting one off, and a win or a loss fades whatever else still rings.
+
+`ruby script/preview_sounds.rb DIRECTORY` writes each sound and a whole game
+as WAVs. The speaker button in the header mutes; the game plays identically
+muted, and without an audio device.
 
 ## Words (Podmajersky, Yifrah; `Presentation::Copy`)
 
