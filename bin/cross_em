@@ -1,0 +1,62 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Cross ’em's launcher: it starts the game as a fused Lota game, as a game
+# shipped to players is, from the folder above this one, which holds
+# conf.rb and main.rb. `lota run` from the repository's root starts the same
+# game unfused, for development, and never runs this. `lota fuse` writes a
+# program of its own (it does the same Boot call), so the packaged apps do
+# not start here; this file is what script/smoke.sh runs with the app's
+# own Ruby to check a build, and what an iOS kit launches.
+#
+# Fused, the game saves under its identity alone in the system's
+# application data folder, where LÖVE's fused games save, and not in a
+# "Lota" folder there (Lota::Boot's fused: argument).
+#
+# CROSS_EM_SMOKE, when it names a file, makes this a check that the app
+# is whole, for CI runners, which have no GPU: it loads Lota, then the
+# game's conf.rb and main.rb, which only define Lota's callbacks, and
+# calls Lota.conf, so a file or a require that did not ship fails here.
+# It writes what it found to that file and exits with 0, or 1 if
+# something is wrong, without opening a window or starting the engine.
+
+# A packaged app's output goes through a pipe (Fledge forwards it to the
+# system's log on a phone), where Ruby would hold it until the program
+# ends; each line should arrive as it is printed.
+$stdout.sync = true
+
+game = File.expand_path("..", __dir__)
+
+smoke = ENV.fetch("CROSS_EM_SMOKE", "")
+unless smoke.empty?
+  lines = ["ruby #{RUBY_VERSION} #{RUBY_PLATFORM}", "program #{$PROGRAM_NAME}"]
+  status = 0
+  begin
+    require "lota"
+    lines << "lota #{Lota::VERSION}"
+    $LOAD_PATH.unshift(game)
+    %w[conf.rb main.rb].each do |file|
+      path = File.join(game, file)
+      raise "#{file} is missing" unless File.file?(path)
+
+      require path
+      lines << "#{file} loaded"
+    end
+    settings = Lota::Settings.new
+    Lota.conf(settings) if Lota.respond_to?(:conf)
+    lines << "identity #{settings.identity.inspect}"
+    callbacks = %i[load update draw].select { |name| Lota.respond_to?(name) }
+    lines << "callbacks #{callbacks.join(" ")}"
+    raise "main.rb defines none of Lota.load, update, or draw" if callbacks.empty?
+  rescue StandardError, ScriptError => e
+    lines << "FAILED: #{e.class}: #{e.message}"
+    lines.concat(Array(e.backtrace).first(5).map { |line| "  #{line}" })
+    status = 1
+  end
+  lines << "status #{status}"
+  File.write(smoke, lines.join("\n") + "\n")
+  exit(status)
+end
+
+require "lota"
+exit(Lota::Boot.new(game, ARGV, fused: true).call)
