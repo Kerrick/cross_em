@@ -40,12 +40,16 @@ if ENV["CROSS_EM_TOUCH_PROBE"] == "1"
     alias_method :cross_em_probe_resize, :resize
     alias_method :cross_em_probe_touchpressed, :touchpressed
 
+    # Lota passes a callback as many arguments as it takes, so these hand
+    # the game's own load and resize only theirs.
     def load(*args)
-      cross_em_probe_load(*args).tap { CrossEm::TouchProbe.screen("load") }
+      cross_em_probe_load(*args.first(method(:cross_em_probe_load).arity.abs))
+        .tap { CrossEm::TouchProbe.screen("load") }
     end
 
     def resize(*args)
-      cross_em_probe_resize(*args).tap { CrossEm::TouchProbe.screen("resize") }
+      cross_em_probe_resize(*args.first(method(:cross_em_probe_resize).arity.abs))
+        .tap { CrossEm::TouchProbe.screen("resize") }
     end
 
     def touchpressed(id, x, y, *rest)
