@@ -215,7 +215,7 @@ in a smaller size rather than being cut off.
   it is.
 - **Results** replace the controls when the game is over: the heading, the
   four statistics (played, win %, streak, best streak), the countdown to the
-  next UTC midnight, "Copy result", and, once the countdown reaches zero,
+  next puzzle (09:00 UTC, for everyone at once), "Copy result", and, once the countdown reaches zero,
   "Play No. N", which opens the new day's puzzle without restarting.
 
 A sheet closes with its ×, a tap outside it, or Esc. On a computer the

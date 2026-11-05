@@ -89,8 +89,8 @@ module CrossEm
         @stats.last
       end
 
-      # The clock to the next puzzle, which is the next UTC midnight after
-      # the day being played.
+      # The clock to the next puzzle, which arrives at Rules::ROLLOVER_HOUR
+      # UTC the day after the one being played.
       def countdown = Countdown.between(@clock.now, game.day.ends_at)
 
       # The day a finished game makes way for, once its clock runs out.

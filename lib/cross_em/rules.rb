@@ -6,8 +6,16 @@ module CrossEm
   module Rules
     NAME = "Cross ’em" # with U+2019, as the original writes it
 
-    # The day of puzzle 0. Each later UTC day counts one more.
+    # The day of puzzle 0. Each later day counts one more.
     LAUNCH = Date.new(2022, 2, 19)
+
+    # When one day's puzzle gives way to the next, the same moment for
+    # everyone, so nobody can spoil a puzzle another player doesn't have
+    # yet: 09:00 UTC, when the whole continental United States is asleep
+    # (3 or 4 am in the Midwest). A fixed UTC hour never moves with
+    # daylight saving time. The original game turned over at UTC midnight;
+    # its letters for each date are the same here, only later.
+    ROLLOVER_HOUR = 9
 
     # A word of fewer letters than this is a problem.
     MINIMUM_WORD_LENGTH = 3

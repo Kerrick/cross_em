@@ -8,7 +8,7 @@ class CountdownTest < Minitest::Test
   def test_it_counts_to_the_next_utc_midnight
     now = Time.utc(2026, 11, 5, 14, 2, 3)
 
-    assert_equal "09:57:57", Countdown.between(now, Day.today(now).ends_at).to_s
+    assert_equal "18:57:57", Countdown.between(now, Day.today(now).ends_at).to_s
   end
 
   def test_part_of_a_second_still_shows_as_a_second

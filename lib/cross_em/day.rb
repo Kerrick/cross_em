@@ -1,10 +1,11 @@
 # frozen_string_literal: true
 
 module CrossEm
-  # One UTC calendar day, and so one puzzle. Everyone playing on the same
+  # One puzzle day: a calendar date, which runs from Rules::ROLLOVER_HOUR
+  # UTC on that date to the same hour the next. Everyone playing on the same
   # day gets the same letters.
   class Day < Data.define(:date)
-    def self.today(now = Time.now) = new(date: now.utc.to_date)
+    def self.today(now = Time.now) = new(date: (now.utc - Rules::ROLLOVER_HOUR * 3600).to_date)
     def self.numbered(number) = new(date: Rules::LAUNCH + number)
 
     # The seed is the date as YYYY-MM-DD, as the original's is.
@@ -14,7 +15,7 @@ module CrossEm
     def number = (date - Rules::LAUNCH).to_i
 
     def succ = with(date: date.next_day)
-    def begins_at = Time.utc(date.year, date.month, date.day)
+    def begins_at = Time.utc(date.year, date.month, date.day, Rules::ROLLOVER_HOUR)
     def ends_at = succ.begins_at
 
     # Rolls the twelve dice with this day's generator: one shuffle puts
