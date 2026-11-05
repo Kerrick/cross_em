@@ -5,7 +5,7 @@ module CrossEm
     # The font for each role, at the screen's density: Look's sizes in
     # points, made into pixel sizes by Units. It also measures text for
     # the sheets' layout (SheetLayout's +measure+).
-    class Type
+    class Typesetter
       S = Presentation::Look::SIZES
 
       attr_reader :fonts

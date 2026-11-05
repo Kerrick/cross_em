@@ -13,6 +13,6 @@ module CrossEm
 end
 
 %w[
-  save_folder settings_store clipboard speaker font_book type pen tile_painter board_painter pool_painter
+  save_folder settings_store clipboard speaker font_book typesetter pen tile_painter board_painter pool_painter
   header_painter button_painter panel_painter sheet_painter flight_painter confetti_painter renderer app
 ].each { require_relative "shell/#{it}" }

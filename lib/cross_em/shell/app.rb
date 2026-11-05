@@ -92,7 +92,7 @@ module CrossEm
         units = Presentation::Units.new(scale: density)
         @fonts.forget if @units && @units.scale != units.scale
         @units = units
-        @type = Type.new(@fonts, units)
+        @type = Typesetter.new(@fonts, units)
         @pen = Pen.new(units:, type: @type, palette:)
         @renderer = Renderer.new(@pen)
         width, height = ::Lota::Graphics.dimensions
