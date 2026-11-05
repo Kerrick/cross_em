@@ -30,12 +30,11 @@ module CrossEm
 
       def game=(game)
         @game = game
-        @placed = []
         @motion = Motion.new(calm: @settings.calm).tap { it.update(@time) }
+        @choreographer = Choreographer.new(self, game, @motion)
         @view = nil
         @armed_at = @copied_at = @copy_failed_at = @stats = nil
-        @gesture = @lifted_slot = nil
-        game.subscribe { changed(it) }
+        @gesture = nil
       end
 
       # The window's size and safe area in pixels, its Units, and the
@@ -84,7 +83,11 @@ module CrossEm
 
       def status = Copy.status(game)
 
-      def stats = @stats ||= @session.stats(game.day)
+      # The statistics, worked out again once the game ends.
+      def stats
+        @stats = [game.status, @session.stats(game.day)] unless @stats&.first == game.status
+        @stats.last
+      end
 
       # The clock to the next puzzle, which is the next UTC midnight after
       # the day being played.
@@ -198,7 +201,7 @@ module CrossEm
       def take_back
         return pick(game.selected) if game.selected
 
-        last = @placed.reverse.find { game.board.occupied?(it) } || game.board.positions.last
+        last = @choreographer.last_placed || game.board.positions.last
         tap_cell(last) if last
       end
 
@@ -307,6 +310,13 @@ module CrossEm
         @motion.camera(nil, @view)
       end
 
+      # Frames the board again, as after a move, easing the camera there.
+      def refit(focus: nil)
+        before = @motion.view || @view
+        @view = BoardView.fit(viewport: layout.board, content: BoardView.content_of(game.board), units:, focus:,
+                              previous: @view)
+        @motion.camera(before, @view)
+      end
       private
 
       def safe_rect = @safe || Rect.new(x: 0, y: 0, width: @width, height: @height)
@@ -382,69 +392,6 @@ module CrossEm
         end
       end
 
-      # Each change is shown arriving from where it came from, measured on
-      # the screen as it was; after every move the board is framed again,
-      # keeping the letter just placed in view.
-      def changed(event)
-        case event
-        when Events::Selected then selected(event.index)
-        when Events::Deselected then deselected(event.index)
-        when Events::Placed then placed(event)
-        when Events::Returned then returned([event])
-        when Events::Reset then returned(event.returns)
-        when Events::Shuffled then shuffled(event.order)
-        when Events::Checked then @motion.checked(game.board.bounds, event.check.problems.keys)
-        when Events::Won, Events::Lost then ended(event)
-        end
-      end
-
-      def selected(index)
-        @motion.selected(index, @lifted_slot)
-        @lifted_slot = index
-      end
-
-      def deselected(index)
-        @motion.lowered(index)
-        @lifted_slot = nil
-      end
-
-      def placed(event)
-        @placed << event.position
-        slot = layout.pool[event.index]
-        lift = units.px(Look::METRICS.lift) * @motion.lift(event.index)
-        @motion.left(event.index)
-        @lifted_slot = nil
-        @motion.fly([:cell, event.position], slot.offset(0, -lift.round), :place)
-        refit(focus: event.position)
-      end
-
-      def returned(returns)
-        from = returns.to_h { [it.index, shown_view.tile_rect(it.position)] }
-        @lifted_slot = nil
-        refit
-        returns.each_with_index { |back, i| @motion.fly([:slot, back.index], from[back.index], :return, delay: i * Motion::STAGGER) }
-      end
-
-      def shuffled(order)
-        @lifted_slot = game.selected
-        @motion.moved_lift(game.selected)
-        order.each_with_index do |old, new|
-          @motion.fly([:slot, new], layout.pool[old], :shuffle) if game.pool.letter?(new) && old != new
-        end
-      end
-
-      def ended(event)
-        @stats = nil
-        @lifted_slot = nil
-        event.is_a?(Events::Won) ? @motion.won(game.board.bounds) : @motion.lost
-      end
-
-      def refit(focus: nil)
-        before = @motion.view || @view
-        @view = BoardView.fit(viewport: layout.board, content: BoardView.content_of(game.board), units:, focus:,
-                              previous: @view)
-        @motion.camera(before, @view)
-      end
     end
   end
 end
