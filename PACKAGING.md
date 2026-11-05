@@ -123,17 +123,17 @@ An iPhone or iPad build is made separately, with Lota's maintainer. It needs `bi
 
 ## What has been verified, and what hasn't
 
-Verified, on the maintainer's Apple-silicon Mac, with a stand-in `conf.rb` and `main.rb` (the real ones were being written at the same time):
+Verified:
 
-- `lota fuse` with the arguments above builds `Cross ’em-arm64-darwin.tar.gz` and `.dmg`. Fledge, the file system, and the archive tools all cope with the curly apostrophe (U+2019) in the name.
-- `script/smoke.sh` on that build reports `status 0`.
+- CI builds every platform's files from each push to `main`, and v0.2.1 was the first release made from a tag with all of them attached.
+- `script/smoke.sh` reports `status 0` on the macOS, Windows and both Linux builds in CI.
+- On Linux x86_64, CI also runs the packaged game for five seconds under Xvfb with Mesa's software OpenGL, and it quits on its own with status 0.
+- On an Apple-silicon Mac, the fused macOS app opens its window, plays with sound, and quits cleanly. Fledge, the file system and the archive tools all cope with the curly apostrophe (U+2019) in the name.
+- A fused macOS app that hung at launch with audio on was traced to a stuck macOS service (`com.apple.cmio.registerassistantservice`), not to the game: any app with a bundle identifier that opened CoreAudio hung the same way. Restarting the service (`sudo kill -9` on its process; macOS starts it again) fixed it.
 
 Not verified:
 
-- **The Linux and Windows builds.** They follow Lota's own `fuse.yml`, but this workflow had not run on those platforms when this was written.
-- **`script/smoke.sh` on Windows**, which runs the app's Ruby from Git Bash, and the exact layout of Fledge's Linux and Windows archives. The script finds the files by pattern.
 - **Playing on a real PC.** Nobody has yet played a packaged build on Windows or Linux with a real graphics card and driver, real sound, or touch.
 - **Linux on other distributions.** The AppImage was not tried on anything older than glibc 2.39.
 - **Restarting.** `lota run` restarts a game that calls `Lota::Event.restart`; a fused app quits instead.
 - **Signing.** The builds are unsigned, so SmartScreen and Gatekeeper warn about them, and the `.dmg` isn't notarized.
-- **Starting the fused app's window from the build.** On the maintainer's Mac, the stand-in game's app did not get past Lota's start-up when run from an agent's shell with no display session, so opening the window from a build is still to be confirmed on a desktop.
