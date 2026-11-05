@@ -88,17 +88,171 @@ class PlayTest < Minitest::Test
     assert_nil play.layout.controls
   end
 
-  def test_typing_a_letter_picks_it_up_and_again_picks_the_next_one
+  def type(play, text) = text.each_char { play.text(it) }
+
+  def test_a_typed_word_that_fits_one_place_goes_there_through_the_game
     play = play(game: game(pool: "CATSDOGTAGCA"))
-    play.text("a")
+    events = events_of(play.game)
+    type(play, "cat")
 
-    assert_equal 1, play.game.selected
-    play.text("A")
+    assert_equal "CAT", play.typing.draft
+    assert_predicate play.game.board, :empty?, "nothing is placed while typing"
+    play.key(:return)
 
-    assert_equal 8, play.game.selected
+    assert_equal "CAT", play.game.board.words.first.text
+    assert_equal [0, 1, 2], events.grep(Events::Placed).map(&:index), "each letter from the first slot holding it"
+    assert_equal "", play.typing.draft
+  end
+
+  def test_space_places_a_typed_word_and_with_nothing_typed_shuffles
+    play = play(game: game(pool: "CATSDOGTAGCA"))
+    type(play, "CAT")
+    play.key(:space)
+
+    assert_equal 3, play.game.board.size
+    before = play.game.pool
+    play.key(:space)
+
+    refute_equal before, play.game.pool
+  end
+
+  def test_extending_a_word_places_only_the_new_letter
+    play = play(game: game(pool: "CATSXXXXXXXX"))
+    type(play, "CAT")
+    play.key(:return)
+    type(play, "CATS")
+    play.key(:return)
+
+    assert_equal %w[CATS], play.game.board.words.map(&:text)
+  end
+
+  def test_several_places_are_offered_numbered_and_tab_and_digits_choose
+    # CAT across; TA fits down through CAT's A (adding a T above it) or
+    # down from its T (adding an A below), and only those cross.
+    play = play(game: game(pool: "CATSDOGTAGCA"))
+    type(play, "CAT")
+    play.key(:return)
+    type(play, "TA")
+    play.key(:return)
+
+    assert_predicate play.typing, :choosing?
+    assert_equal 2, play.typing.choice.size
+    assert_match(/TA fits 2 places/, play.status.text)
+    play.key(:tab)
+
+    assert_equal 1, play.typing.choice.index
+    play.key(:tab, shift: true)
+
+    assert_equal 0, play.typing.choice.index
+    play.text("2")
+
+    refute_predicate play.typing, :choosing?
+    assert_equal "A", play.game.board[at(2, 1)], "the second place, in reading order"
+    assert_equal 4, play.game.board.size
+  end
+
+  def test_esc_goes_back_from_choosing_to_the_draft_then_clears_it
+    play = play(game: game(pool: "CATSDOGTAGCA"))
+    type(play, "CAT")
+    play.key(:return)
+    type(play, "TA")
+    play.key(:return)
     play.key(:escape)
 
+    refute_predicate play.typing, :choosing?
+    assert_equal "TA", play.typing.draft
+    play.key(:escape)
+
+    assert_equal "", play.typing.draft
+    assert_equal 3, play.game.board.size
+  end
+
+  def test_a_word_that_fits_nowhere_says_why_and_keeps_the_draft
+    play = play(game: game(pool: "CATSDOGTAGCA"))
+    type(play, "crab")
+    play.key(:return)
+
+    assert_equal "CRAB needs an R and a B that aren't in the pool.", Copy.misfit(play.typing.misfit)
+    assert_equal "CRAB", play.typing.draft
+    play.key(:backspace)
+
+    assert_nil play.typing.misfit, "editing the word clears the message"
+    assert_equal "CRA", play.typing.draft
+  end
+
+  def test_backspace_with_nothing_typed_takes_back_the_last_typed_word_then_the_one_before
+    play = play(game: game(pool: "CATSXXXXXXXX"))
+    type(play, "CAT")
+    play.key(:return)
+    type(play, "CATS")
+    play.key(:return)
+    play.key(:backspace)
+
+    assert_equal %w[CAT], play.game.board.words.map(&:text), "only the S it added"
+    play.key(:backspace)
+
+    assert_predicate play.game.board, :empty?
+  end
+
+  def test_space_never_shuffles_while_choosing
+    play = play(game: game(pool: "CATSDOGTAGCA"))
+    type(play, "CAT")
+    play.key(:return)
+    type(play, "TA")
+    play.key(:return)
+    pool = play.game.pool
+    play.key(:space)
+
+    assert_equal 4, play.game.board.size, "space placed the word shown"
+    assert_equal pool.slots.compact.size - 1, play.game.pool.slots.compact.size
+  end
+
+  def test_typing_puts_down_a_letter_picked_up_with_a_tap
+    play = play()
+    play.pick(3)
+    type(play, "C")
+
     assert_nil play.game.selected
+    assert_equal "C", play.typing.draft
+  end
+
+  def test_a_typed_word_that_fills_the_board_is_checked_and_wins_as_taps_do
+    play = play(game: game(pool: "WORDSMITHING"))
+    type(play, "wordsmithing")
+    play.key(:return)
+
+    assert_predicate play.game, :won?
+  end
+
+  def test_typing_does_nothing_once_the_game_is_over_or_under_a_sheet
+    play = play()
+    play.open(:help)
+    type(play, "CAT")
+
+    assert_equal "", play.typing.draft
+    play.close_sheet
+    play.give_up(confirmed: true)
+    type(play, "CAT")
+
+    assert_equal "", play.typing.draft
+  end
+
+  def test_the_pool_marks_the_letters_a_draft_would_use
+    play = play(game: game(pool: "CATSDOGTAGCA"))
+    type(play, "CAA")
+
+    assert_equal Set[0, 1, 8], play.typing.pool_marks
+  end
+
+  def test_choosing_keeps_the_place_shown_in_the_boards_frame
+    play = play(game: game(pool: "CATSDOGTAGCA"))
+    type(play, "CAT")
+    play.key(:return)
+    type(play, "TA")
+    play.key(:return)
+    content = play.view.content
+
+    play.typing.choice.current.positions.each { assert content.include?(it), "#{it} framed" }
   end
 
   def test_closing_how_to_play_remembers_it_was_read

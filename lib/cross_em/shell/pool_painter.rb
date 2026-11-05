@@ -14,8 +14,10 @@ module CrossEm
       def draw(play)
         game = play.game
         motion = play.motion
+        marks = play.typing.pool_marks
         play.layout.pool.each_with_index do |rect, index|
           @tiles.socket(rect)
+          mark(rect) if marks.include?(index)
           letter = game.pool[index]
           next if letter.nil? || motion.flying?([:slot, index])
 
@@ -41,6 +43,15 @@ module CrossEm
         t = motion.finish(Position::ORIGIN)
         @tiles.draw(pose.rect, letter, alpha: 1.0 - t, depth: depth(pose.rect)) if t < 1.0
         @tiles.draw(pose.rect, letter, state: :unused, alpha: t)
+      end
+
+      # A short bar under a slot whose letter the word being typed would
+      # use: a light mark, quieter than the caret of a letter picked up.
+      def mark(rect)
+        width = (rect.width * 0.4).round
+        bar = Presentation::Rect.new(x: (rect.center_x - (width / 2.0)).round, y: rect.bottom + @pen.px(3), width:,
+                                     height: @pen.px(3))
+        @pen.fill(bar, @pen.palette.ink_muted, radius: bar.height / 2)
       end
 
       # A small upward caret under the slot, pointing at the lifted tile.

@@ -12,8 +12,11 @@ module CrossEm
         @play, @game, @motion = play, game, motion
         @lifted_slot = nil
         @placed = []
-        game.subscribe { call(it) }
+        game.subscribe(self)
       end
+
+      # Stops following the game, as when the screen shows another.
+      def detach = @game.unsubscribe(self)
 
       # The letter placed last that is still on the board.
       def last_placed = @placed.reverse.find { @game.board.occupied?(it) }
@@ -26,12 +29,16 @@ module CrossEm
         when Events::Returned then returned([event])
         when Events::Reset then returned(event.returns)
         when Events::Shuffled then shuffled(event.order)
-        when Events::Checked then @motion.checked(@game.board.bounds, event.check.problems.keys)
+        when Events::Checked then @motion.checked(@game.board.bounds, event.check.problems.keys, delay:)
         when Events::Won, Events::Lost then ended(event)
         end
       end
 
       private
+
+      # How long this event's motion waits: a typed word's later letters
+      # leave a little after its first (Typing).
+      def delay = @play.event_delay
 
       def selected(index)
         @motion.selected(index, @lifted_slot)
@@ -49,7 +56,7 @@ module CrossEm
         lift = @play.units.px(Look::METRICS.lift) * @motion.lift(event.index)
         @motion.left(event.index)
         @lifted_slot = nil
-        @motion.fly([:cell, event.position], slot.offset(0, -lift.round), :place)
+        @motion.fly([:cell, event.position], slot.offset(0, -lift.round), :place, delay:)
         @play.refit(focus: event.position)
       end
 
@@ -59,7 +66,7 @@ module CrossEm
         @lifted_slot = nil
         @play.refit
         returns.each_with_index do |back, i|
-          @motion.fly([:slot, back.index], from[back.index], :return, delay: i * Motion::STAGGER)
+          @motion.fly([:slot, back.index], from[back.index], :return, delay: delay + (i * Motion::STAGGER))
         end
       end
 
@@ -73,7 +80,7 @@ module CrossEm
 
       def ended(event)
         @lifted_slot = nil
-        event.is_a?(Events::Won) ? @motion.won(@game.board.bounds) : @motion.lost
+        event.is_a?(Events::Won) ? @motion.won(@game.board.bounds, delay:) : @motion.lost(delay:)
       end
     end
   end

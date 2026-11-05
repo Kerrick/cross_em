@@ -7,6 +7,10 @@ module CrossEm
     # and a step's arguments by colons:
     #
     #   pick:K             picks up the first K in the pool
+    #   type:CRAB          types those letters, as at a keyboard
+    #   key:return         presses a key, by Lota's name for it, with any
+    #                      modifiers first: key:tab, key:shift+tab,
+    #                      key:backspace, key:escape, key:cmd+c
     #   slot:3             taps pool slot 3 (from 0)
     #   tap:0:1            taps the cell at column 0, row 1
     #   word:MILK:0:0:down places MILK from (0, 0) down (or across),

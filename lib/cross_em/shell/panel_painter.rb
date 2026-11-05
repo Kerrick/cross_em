@@ -7,8 +7,8 @@ module CrossEm
     # heading, the statistics, the clock to the next puzzle, and the share
     # button.
     class PanelPainter
-      def initialize(pen, buttons)
-        @pen, @buttons = pen, buttons
+      def initialize(pen, buttons, tiles)
+        @pen, @buttons, @tiles = pen, buttons, tiles
       end
 
       def draw(play)
@@ -16,7 +16,10 @@ module CrossEm
         if (results = layout.results)
           @pen.fading(play.motion.results) { results(play, results) }
         else
-          status(play.status, layout.status)
+          typing = play.typing
+          if typing.drafting? && !typing.choosing? then draft(play, layout.status)
+          else status(play.status, layout.status)
+          end
           layout.controls.each { |name, rect| control(play, name, rect) }
         end
       end
@@ -51,6 +54,40 @@ module CrossEm
 
         color = status.reasons.empty? ? palette.ink_muted : palette.problem
         @pen.text(extra, small, rect.x + ((rect.width - small.width(extra)) / 2.0), top + (lines.size * line) + @pen.px(2), color)
+      end
+
+      # The word being typed, as ghost tiles with a blinking caret after
+      # them, and under it the keys that place or clear it, or, if it
+      # went nowhere, why.
+      def draft(play, rect)
+        palette = @pen.palette
+        typing = play.typing
+        letters = typing.draft.chars
+        gap = @pen.px(4)
+        room = [letters.size, 8].max
+        tile = [@pen.px(36), (rect.width - (gap * (room - 1))) / room].min
+        small = @pen.type.reason
+        note = typing.misfit ? Presentation::Copy.misfit(typing.misfit) : Presentation::Copy::DRAFT_HINT
+        total = tile + @pen.px(4) + small.height
+        top = rect.y + ((rect.height - total) / 2)
+        width = (letters.size * tile) + ((letters.size - 1) * gap)
+        left = (rect.center_x - (width / 2.0)).round
+        letters.each_with_index do |letter, i|
+          @tiles.ghost(Presentation::Rect.new(x: left + (i * (tile + gap)), y: top, width: tile, height: tile), letter)
+        end
+        caret(play, left + width + gap, top, tile)
+        color = typing.misfit ? palette.problem : palette.ink_muted
+        _, lines = small.wrap(note, rect.width)
+        @pen.text(lines.first.to_s, small, rect.x + ((rect.width - small.width(lines.first.to_s)) / 2.0), top + tile + @pen.px(4), color)
+      end
+
+      # A text cursor after the last letter, blinking unless motion is
+      # calm.
+      def caret(play, x, top, height)
+        return if !play.settings.calm && (play.time % 1.0) > 0.55
+
+        @pen.fill(Presentation::Rect.new(x:, y: top + @pen.px(4), width: @pen.stroke(2), height: height - @pen.px(8)),
+                  @pen.palette.ink)
       end
 
       # One line if it fits; else a line a sentence, so a line never ends

@@ -29,6 +29,7 @@ module CrossEm
 
             tile(view, game, motion, position)
           end
+          choices(view, play.typing.choice) if play.typing.choosing?
           sweep(view, motion)
         end
       end
@@ -87,6 +88,53 @@ module CrossEm
           next unless view.visible?(position)
 
           @tiles.target(view.tile_rect(position), alpha)
+        end
+      end
+
+      # Every place a typed word fits, numbered: the one shown with its
+      # new letters as ghost tiles inside an outline of the whole word,
+      # the others only outlined, fainter, under it. More than nine
+      # would only tangle, and 1 to 9 can't pick them, so then only the
+      # one shown is drawn.
+      def choices(view, choice)
+        if choice.size <= 9
+          choice.placements.each_with_index do |placement, i|
+            run(view, placement, i + 1, current: false) unless i == choice.index
+          end
+        end
+        run(view, choice.current, choice.index + 1, current: true)
+      end
+
+      def run(view, placement, number, current:)
+        palette = @pen.palette
+        first, last = view.rect_of(placement.positions.first), view.rect_of(placement.positions.last)
+        outline = Presentation::Rect.new(x: first.x, y: first.y, width: last.right - first.x, height: last.bottom - first.y)
+                                    .inset(@pen.px(1))
+        radius = (view.cell * 0.18).round
+        if current
+          placement.fresh.each { |position, letter| @tiles.ghost(view.tile_rect(position), letter, color: palette.target) }
+          @pen.outline(outline, palette.target, width: @pen.stroke(2.5), radius:)
+        else
+          @pen.dashed(outline, palette.target, width: @pen.stroke(1.5), dash: @pen.px(6), gap: @pen.px(4), radius:,
+                                               alpha: 0.55)
+        end
+        badge(outline, number, current)
+      end
+
+      # The number that picks a place, on its first cell's corner: filled
+      # for the place shown, outlined for the rest.
+      def badge(outline, number, current)
+        palette = @pen.palette
+        size = @pen.px(22)
+        box = Presentation::Rect.new(x: outline.x - (size / 3), y: outline.y - (size / 3), width: size, height: size)
+        font = @pen.type.fonts.sans_bold(@pen.px(13))
+        if current
+          @pen.fill(box, palette.target, radius: size / 2)
+          @pen.centered(number.to_s, font, box, palette.page)
+        else
+          @pen.fill(box, palette.card, radius: size / 2)
+          @pen.outline(box, palette.target, width: @pen.stroke(1.5), radius: size / 2)
+          @pen.centered(number.to_s, font, box, palette.target)
         end
       end
 

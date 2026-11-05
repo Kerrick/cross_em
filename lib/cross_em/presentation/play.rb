@@ -13,7 +13,7 @@ module CrossEm
     class Play
       T = Look::TIMING
 
-      attr_reader :game, :settings, :time, :units, :motion
+      attr_reader :game, :settings, :time, :units, :motion, :typing
 
       # +host+ answers sound(name), copy(text) (true if it worked),
       # settings_changed(settings), next_day, dark?, system_theme (:light,
@@ -25,16 +25,19 @@ module CrossEm
         @layouts = {}
         @pointers = PointerMap.new(self)
         @sheet_layouts = {}
+        @typing = Typing.new(self)
         self.game = game
       end
 
       def game=(game)
         @game = game
         @motion = Motion.new(calm: @settings.calm).tap { it.update(@time) }
+        @choreographer&.detach
         @choreographer = Choreographer.new(self, game, @motion)
         @view = nil
         @armed_at = @copied_at = @copy_failed_at = @stats = nil
         @pointers.cancel
+        @typing.forget
       end
 
       # The window's size and safe area in pixels, its Units, and the
@@ -82,7 +85,17 @@ module CrossEm
                                                    link: kind == :help ? [:credits, Copy::CREDITS] : nil)
       end
 
-      def status = Copy.status(game)
+      def status
+        return Copy.choosing(typing.choice) if typing.choosing?
+
+        Copy.status(game, keyboard: !@touch)
+      end
+
+      # How long after the event being told now its animation and sound
+      # wait: the later letters of a typed word leave a little later.
+      def event_delay = typing.delay
+
+      def sound(name) = @host.sound(name)
 
       # The statistics, worked out again once the game ends.
       def stats
@@ -136,7 +149,7 @@ module CrossEm
       def cursor_at(x, y) = @pointers.cursor_at(x, y)
 
       def text(text) = KeyMap.text(self, text)
-      def key(key, command: false) = KeyMap.key(self, key, command:)
+      def key(key, command: false, shift: false) = KeyMap.key(self, key, command:, shift:)
 
       # --- Actions, by name, as the buttons and a Script call them ---
 
@@ -145,29 +158,22 @@ module CrossEm
         game.tap_slot(index)
       end
 
-      def pick_letter(letter)
-        slots = game.pool.slots.each_index.select { game.pool[it] == letter }
-        return if slots.empty?
-
-        current = slots.index(game.selected)
-        if current.nil? then pick(slots.first)
-        elsif slots.size == 1 then pick(game.selected) # puts it down
-        else pick(slots[(current + 1) % slots.size])
-        end
-      end
-
       def tap_cell(position)
         disarm
         game.tap_cell(position) if position
       end
 
-      # Backspace: puts down a letter picked up, or else sends back the
-      # letter placed last.
-      def take_back
-        return pick(game.selected) if game.selected
+      # The letter placed last that is still on the board, however it got
+      # there.
+      def last_placed = @choreographer.last_placed || game.board.positions.last
 
-        last = @choreographer.last_placed || game.board.positions.last
-        tap_cell(last) if last
+      # Backspace: puts down a letter picked up, or else edits what is
+      # being typed (Typing#erase), which with nothing typed takes back
+      # the last word typed, or the letter placed last.
+      def erase
+        return pick(game.selected) if game.selected && !typing.drafting? && !typing.choosing?
+
+        typing.erase
       end
 
       def press_button(name)
@@ -242,13 +248,24 @@ module CrossEm
         @sheets[-1] = sheet.scrolled(by.round, sheet_layout)
       end
 
-      # Moves the board under the finger at once, the camera stopping
-      # wherever it was easing to.
-      # Esc: closes a sheet, or puts down a letter picked up.
+      # Esc: closes a sheet, or goes back from choosing where a word
+      # goes, or clears what is typed, or puts down a letter picked up.
       def escape
         if sheet? then close_sheet
+        elsif typing.escape then nil
         elsif game.selected then pick(game.selected)
         end
+      end
+
+      # Enter: places a typed word, or opens today's puzzle once the
+      # finished one's clock has run out.
+      def enter = typing.submit || next_puzzle
+
+      # Space: places a typed word, or else shuffles.
+      def space
+        return if typing.submit
+
+        press_button(:shuffle) if game.playing?
       end
 
       def toggle_help = sheet&.kind == :help ? close_sheet : open(:help)
@@ -256,18 +273,27 @@ module CrossEm
       # Enter: today's puzzle, once the finished one's clock has run out.
       def next_puzzle = next_day && @host.next_day
 
+      # Moves the board under the finger at once, the camera stopping
+      # wherever it was easing to.
       def pan(dx, dy)
         @view = shown_view.with(viewport: view.viewport, content: view.content, cell: view.cell).pan(dx, dy)
         @motion.camera(nil, @view)
       end
 
-      # Frames the board again, as after a move, easing the camera there.
+      # Frames the board again, as after a move, easing the camera there:
+      # the letters, and any place a typed word is being shown, with
+      # +focus+ (a cell, or several) in view.
       def refit(focus: nil)
         before = @motion.view || @view
-        @view = BoardView.fit(viewport: layout.board, content: BoardView.content_of(game.board), units:, focus:,
-                              previous: @view)
+        cells = typing.cells
+        content = BoardView.content_of(game.board, cells)
+        focus = cells.empty? ? focus : [cells.last, cells.first]
+        @view = BoardView.fit(viewport: layout.board, content:, units:, focus:, previous: @view)
         @motion.camera(before, @view)
       end
+
+      def disarm = @armed_at = nil
+
       private
 
       def safe_rect = @safe || Rect.new(x: 0, y: 0, width: @width, height: @height)
@@ -279,8 +305,6 @@ module CrossEm
         @motion.calm = settings.calm
         @host.settings_changed(settings)
       end
-
-      def disarm = @armed_at = nil
     end
   end
 end

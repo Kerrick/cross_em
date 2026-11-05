@@ -8,6 +8,8 @@ module CrossEm
     module Copy
       PICK = "Tap a letter to pick it up."
       PLACE = "Now tap a glowing square to place it."
+      TYPE = "Or type a word and press Enter."
+      DRAFT_HINT = "Enter places it. Esc clears it."
       SHUFFLE = "Shuffle"
       RESET = "Reset"
       GIVE_UP = "Give up"
@@ -42,7 +44,9 @@ module CrossEm
 
       def letters(count) = count == 1 ? "1 letter" : "#{count} letters"
 
-      def status(game)
+      # +keyboard+: the player has one, so the empty board also says a
+      # word can be typed.
+      def status(game, keyboard: false)
         if game.won? then Status.new(text: WON, detail: "All #{Rules::LETTER_COUNT} letters crossed.", tone: :won)
         elsif game.lost? then Status.new(text: LOST, detail: crossed(game), tone: :lost)
         elsif game.selected then Status.new(text: PLACE)
@@ -50,11 +54,47 @@ module CrossEm
           count = game.check.count
           Status.new(text: "#{letters(count)} #{count == 1 ? 'needs' : 'need'} fixing. Tap one to send it back.",
                      reasons: reasons(game.check), tone: :problem)
-        elsif game.board.empty? then Status.new(text: PICK)
+        elsif game.board.empty? then Status.new(text: PICK, detail: keyboard ? TYPE : nil)
         else
           Status.new(text: PICK, detail: "#{letters(game.pool.unused_count)} left. Tap a placed one to send it back.")
         end
       end
+
+      # While a typed word's places are shown on the board, numbered:
+      # how many, and the keys that choose.
+      def choosing(choice)
+        last = [choice.size, 9].min
+        Status.new(text: "#{choice.word} fits #{choice.size} places. Showing #{choice.index + 1}.",
+                   detail: "Tab: next · 1–#{last}: pick · Enter: place · Esc: back")
+      end
+
+      # Why a typed word went nowhere, calmly and specifically (a
+      # WordFit::Misfit).
+      def misfit(misfit)
+        word = misfit.word
+        case misfit.reason
+        when :missing then missing(word, misfit.letters)
+        when :on_board then "#{word} is already on the board."
+        when :empty then ""
+        else "#{word} doesn't fit anywhere on the board."
+        end
+      end
+
+      # "CRAB needs a B that isn't in the pool." When the pool has some of
+      # a letter, but not enough: "CRABB needs more Bs than the pool has."
+      def missing(word, letters)
+        counts = letters.tally
+        if counts.keys.all? { word.count(it) == counts[it] }
+          names = counts.map { |letter, count| count == 1 ? "#{article(letter)} #{letter}" : "#{count} #{letter}s" }
+          verb = letters.size == 1 ? "isn't" : "aren't"
+          "#{word} needs #{names.join(' and ')} that #{verb} in the pool."
+        else
+          "#{word} needs more #{counts.keys.map { "#{it}s" }.join(' and ')} than the pool has."
+        end
+      end
+
+      # A letter's name begins with a vowel sound for these: an F, an R.
+      def article(letter) = "AEFHILMNORSX".include?(letter) ? "an" : "a"
 
       # The good news after a loss: how many letters ended up in good
       # words.

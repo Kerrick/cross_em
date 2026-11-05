@@ -75,9 +75,10 @@ module CrossEm
 
       def key_pressed(key)
         command = ::Lota::Keyboard.down?(:lgui, :rgui, :lctrl, :rctrl)
+        shift = ::Lota::Keyboard.down?(:lshift, :rshift)
         return toggle_fullscreen if key == :f11 && !touch?
 
-        @play.key(key, command:)
+        @play.key(key, command:, shift:)
       end
 
       def text_input(text) = @play.text(text)
@@ -134,7 +135,8 @@ module CrossEm
       def open_game(day)
         game = @session.open(day)
         game.subscribe do |event|
-          Presentation::Sounds.for(event, game).each { |cue| @cues << [@elapsed + cue.delay, cue] }
+          delay = @play&.event_delay.to_f
+          Presentation::Sounds.for(event, game).each { |cue| @cues << [@elapsed + delay + cue.delay, cue] }
         end
       end
 
@@ -219,7 +221,9 @@ module CrossEm
       def run(step)
         args = step.args
         case step.name
-        when :pick then @play.pick_letter(args.fetch(0).upcase)
+        when :pick then pick_letter(args.fetch(0).upcase)
+        when :type then args.fetch(0).each_char { @play.text(it) }
+        when :key then press_key(args.fetch(0))
         when :slot then @play.pick(Integer(args.fetch(0)))
         when :tap then @play.tap_cell(position(args[0], args[1]))
         when :word then place_word(args.fetch(0).upcase, position(args[1], args[2]), args[3].to_s.start_with?("d"))
@@ -239,6 +243,18 @@ module CrossEm
       end
 
       def position(column, row) = Position.new(column: Integer(column), row: Integer(row))
+
+      def pick_letter(letter)
+        slot = @play.game.pool.slots.index(letter)
+        @play.pick(slot) if slot
+      end
+
+      # key:return, key:tab, key:shift+tab, key:cmd+c: a key as Lota names
+      # it, with any modifiers before a +.
+      def press_key(text)
+        *modifiers, key = text.downcase.split("+")
+        @play.key(key.to_sym, command: modifiers.intersect?(%w[cmd ctrl]), shift: modifiers.include?("shift"))
+      end
 
       # Places +word+ from +start+, a letter at a time, each as soon as its
       # cell is a target, so a word can grow from a letter in its middle.

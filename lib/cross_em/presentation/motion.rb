@@ -110,13 +110,14 @@ module CrossEm
       end
 
       # Every letter on the board was checked, against the board's
-      # bounds, swept left to right.
-      def checked(bounds, problems)
-        @check = {at: @now, bounds:, problems: problems.dup}
+      # bounds, swept left to right, beginning +delay+ seconds from now
+      # (once a typed word's last letter is on its way).
+      def checked(bounds, problems, delay: 0.0)
+        @check = {at: @now + (calm ? 0 : delay), bounds:, problems: problems.dup}
       end
 
-      def won(bounds) = @ending = {at: @now, kind: :won, bounds:}
-      def lost = @ending = {at: @now, kind: :lost}
+      def won(bounds, delay: 0.0) = @ending = {at: @now + (calm ? 0 : delay), kind: :won, bounds:}
+      def lost(delay: 0.0) = @ending = {at: @now + (calm ? 0 : delay), kind: :lost}
 
       # The camera moves from +from+ to +to+ (BoardViews).
       def camera(from, to)

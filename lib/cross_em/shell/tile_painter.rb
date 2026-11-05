@@ -36,6 +36,18 @@ module CrossEm
         G.rectangle(:fill, cx, cy - arm + (thick / 2), thick, 2 * arm)
       end
 
+      # A ghost of a tile: a faint face inside a dashed outline in
+      # +color+, with its letter in ink. A letter typed but not yet
+      # placed, or one a typed word would place.
+      def ghost(rect, letter, color: nil, alpha: 1.0)
+        palette = @pen.palette
+        radius = (rect.width * 0.14).round
+        @pen.fill(rect, palette.tile_face, alpha: 0.16 * alpha, radius:)
+        @pen.dashed(rect, color || palette.ink_muted, width: @pen.stroke(1.5), dash: @pen.px(5), gap: @pen.px(3),
+                                                      radius:, alpha:)
+        @pen.centered(letter, @pen.type.tile(rect.height - 2), rect, palette.ink, alpha:)
+      end
+
       # A sunken dashed socket where a tile can sit and none does.
       def socket(rect, alpha: 1.0)
         palette = @pen.palette
