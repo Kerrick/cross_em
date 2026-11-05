@@ -19,9 +19,8 @@ module CrossEm
       # +host+ answers sound(name), copy(text) (true if it worked),
       # settings_changed(settings),
       # next_day, dark? and read(path). +measure+ wraps text for the sheets (SheetLayout).
-      def initialize(game:, session:, dictionary:, settings:, host:, measure:, clock: Clock.real, touch: false)
-        @session, @dictionary, @settings, @host, @measure, @clock, @touch =
-          session, dictionary, settings, host, measure, clock, touch
+      def initialize(game:, session:, settings:, host:, measure:, clock: Clock.real, touch: false)
+        @session, @settings, @host, @measure, @clock, @touch = session, settings, host, measure, clock, touch
         @time = 0.0
         @sheets = []
         @layouts = {}
@@ -83,7 +82,7 @@ module CrossEm
         @sheet_layouts[kind] ||= SheetLayout.build(blocks: blocks(kind), safe: safe_rect, units:, measure: @measure)
       end
 
-      def status = Copy.status(game, @dictionary)
+      def status = Copy.status(game)
 
       def stats = @stats ||= @session.stats(game.day)
 

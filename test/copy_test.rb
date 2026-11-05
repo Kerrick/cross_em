@@ -5,7 +5,7 @@ require "presentation_helper"
 class CopyTest < Minitest::Test
   include PresentationTest
 
-  def status(game) = Copy.status(game, dictionary)
+  def status(game) = Copy.status(game)
 
   def test_the_status_says_what_to_do_next
     game = game()
@@ -30,18 +30,14 @@ class CopyTest < Minitest::Test
   end
 
   def test_short_and_lonely_words_have_their_own_reasons
-    check = Check.new(problems: {at(0, 0) => :too_short, at(1, 0) => :too_short, at(5, 5) => :too_short})
-    reasons = Copy.reasons(board("AZ"), check, dictionary)
-
-    assert_equal ["AZ is too short"], reasons
-    assert_equal ["Q is on its own"], Copy.reasons(Board.new(cells: {at(5, 5) => "Q"}), check, dictionary)
+    assert_equal ["AZ is too short"], Copy.reasons(referee.check(board("AZ")))
+    assert_equal ["Q is on its own"], Copy.reasons(referee.check(Board.new(cells: {at(5, 5) => "Q"})))
   end
 
   def test_a_word_marked_only_by_a_word_crossing_it_is_not_blamed
-    board = board("CAT", "AZ.")
-    check = Referee.new(dictionary).check(board)
+    reasons = Copy.reasons(referee.check(board("CAT", "AZ.")))
 
-    refute_includes Copy.reasons(board, check, dictionary), "CAT isn't connected"
+    assert_equal ["CA is too short", "AZ is too short"], reasons
   end
 
   def test_one_problem_is_one_letter

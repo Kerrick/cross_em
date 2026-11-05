@@ -38,14 +38,14 @@ module CrossEm
 
       def letters(count) = count == 1 ? "1 letter" : "#{count} letters"
 
-      def status(game, dictionary)
+      def status(game)
         if game.won? then Status.new(text: WON, detail: "All #{Rules::LETTER_COUNT} letters crossed.", tone: :won)
         elsif game.lost? then Status.new(text: LOST, detail: crossed(game), tone: :lost)
         elsif game.selected then Status.new(text: PLACE)
         elsif game.check && !game.check.clean?
           count = game.check.count
           Status.new(text: "#{letters(count)} #{count == 1 ? 'needs' : 'need'} fixing. Tap one to send it back.",
-                     reasons: reasons(game.board, game.check, dictionary), tone: :problem)
+                     reasons: reasons(game.check), tone: :problem)
         elsif game.board.empty? then Status.new(text: PICK)
         else
           Status.new(text: PICK, detail: "#{letters(game.pool.unused_count)} left. Tap a placed one to send it back.")
@@ -57,17 +57,15 @@ module CrossEm
       def crossed(game) = "#{game.good_letters} of #{Rules::LETTER_COUNT} letters crossed."
 
       # Why each problem is one, a sentence fragment a word, in reading
-      # order: "AZ is too short", "TCA isn't in the word list", "DOG isn't
-      # connected". A word whose letters are problems only because of a
-      # word crossing it is not listed; that word is.
-      def reasons(board, check, dictionary)
-        board.words.sort_by { it.positions.first }.filter_map do |word|
-          next unless word.positions.any? { check.problem?(it) }
-
-          if word.length == 1 then "#{word} is on its own"
-          elsif word.length < Rules::MINIMUM_WORD_LENGTH then "#{word} is too short"
-          elsif !dictionary.include?(word.text) then "#{word} isn't in the word list"
-          elsif word.positions.all? { check.reason(it) == :disconnected } then "#{word} isn't connected"
+      # order, from the words the check named: "AZ is too short", "TCA
+      # isn't in the word list", "DOG isn't connected", "Q is on its own".
+      def reasons(check)
+        check.words.map do |problem|
+          word = problem.word
+          case problem.reason
+          when :too_short then word.length == 1 ? "#{word} is on its own" : "#{word} is too short"
+          when :not_a_word then "#{word} isn't in the word list"
+          else "#{word} isn't connected"
           end
         end.uniq
       end

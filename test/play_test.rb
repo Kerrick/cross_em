@@ -11,7 +11,7 @@ class PlayTest < Minitest::Test
   end
 
   def play(game: game(), clock: Clock.real, settings: Settings.default)
-    Play.new(game:, session: @session, dictionary:, settings:, host: @host, measure: FakeMeasure.new, clock:).tap do
+    Play.new(game:, session: @session, settings:, host: @host, measure: FakeMeasure.new, clock:).tap do
       it.resize(width: 390, height: 844, units: units)
     end
   end

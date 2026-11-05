@@ -23,15 +23,15 @@ module CrossEm
         @settings_store = SettingsStore.new(@folder, appearance: theme)
         settings = @settings_store.load
         @clock = clock
-        @dictionary = Dictionary.parse(File.read(File.join(ROOT, Dictionary::FILE), encoding: Encoding::UTF_8))
-        @session = Session.new(archive: archive, referee: Referee.new(@dictionary))
+        dictionary = Dictionary.parse(File.read(File.join(ROOT, Dictionary::FILE), encoding: Encoding::UTF_8))
+        @session = Session.new(archive: archive, referee: Referee.new(dictionary))
         @cues = []
         @speaker = Speaker.new(muted: settings.muted, enabled: @env["CROSS_EM_MUTE"] != "1")
         @clipboard = Clipboard.new
         @system_theme = system_theme
         @fonts = FontBook.new(Look::TYPE)
         @input = Presentation::InputRouter.new
-        @play = Presentation::Play.new(game: open_game(@clock.today), session: @session, dictionary: @dictionary,
+        @play = Presentation::Play.new(game: open_game(@clock.today), session: @session,
                                        settings:, host: self, measure: nil, clock: @clock,
                                        touch: TOUCH_SYSTEMS.include?(@os))
         resize
