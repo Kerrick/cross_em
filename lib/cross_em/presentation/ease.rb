@@ -9,7 +9,6 @@ module CrossEm
       module_function
 
       def linear(t) = t.to_f.clamp(0.0, 1.0)
-      def out_quad(t) = 1 - ((1 - linear(t))**2)
       def out_cubic(t) = 1 - ((1 - linear(t))**3)
       def in_out_sine(t) = -(Math.cos(Math::PI * linear(t)) - 1) / 2
 

@@ -18,10 +18,6 @@ module CrossEm
 
       # Pixels back to points, for decisions such as portrait or landscape.
       def pt(pixels) = pixels / scale
-
-      # Where a stroke of +width+ pixels goes so its edges fall on pixel
-      # boundaries: odd widths sit on a pixel's centre.
-      def self.line_at(pixel, width) = width.odd? ? pixel + 0.5 : pixel.to_f
     end
   end
 end

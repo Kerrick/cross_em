@@ -16,11 +16,6 @@ class UnitsTest < Minitest::Test
     assert_equal 3, units(3).stroke(1)
   end
 
-  def test_odd_strokes_sit_on_pixel_centres
-    assert_in_delta 10.5, Units.line_at(10, 1)
-    assert_in_delta 10.0, Units.line_at(10, 2)
-  end
-
   def test_a_missing_density_counts_as_one
     assert_in_delta 1.0, Units.new(scale: 0).scale
   end
