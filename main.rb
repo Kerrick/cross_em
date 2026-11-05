@@ -7,12 +7,29 @@
 #
 # Controls: tap or click a letter in the pool to pick it up, then a
 # glowing square on the grid to place it; tap a placed letter to send it
-# back. Drag the grid, or scroll, to see all of a big one. On a keyboard,
-# type a letter to pick it up (again for the next of the same letter), Esc
-# puts it down or closes a sheet, Backspace sends back the letter placed
-# last, Space shuffles, ? opens How to play, Ctrl+C or Cmd+C copies the
-# result once the game is over, Enter plays the next puzzle when it is
-# ready, and F11 toggles fullscreen.
+# back. Drag the grid, or scroll, to see all of a big one. The calendar in
+# the header opens Past puzzles: any day can be played again for fun, as
+# practice that is never saved, and a finished day shows its board.
+#
+# On a keyboard:
+#
+#   A-Z            type a word
+#   Enter, Space   place it where it fits; with nothing typed, Enter
+#                  plays the next puzzle when it is ready and Space
+#                  shuffles
+#   Tab, arrows    when it fits several places, show the next (Shift+Tab,
+#                  Up and Left the one before)
+#   1-9            place it in that numbered place
+#   Backspace      the last letter typed; with nothing typed, takes back
+#                  the last word placed (then the one before)
+#   Esc            back from choosing a place, clears what is typed, puts
+#                  down a letter picked up, or closes a sheet
+#   ?              How to play
+#   Ctrl/Cmd+C     copies the result once the game is over
+#   F11            fullscreen
+#
+# In Past puzzles, Up and Down walk the days, Page Up, Page Down, Home and
+# End go further, and Enter opens the day.
 #
 # Development settings, read from the environment:
 #

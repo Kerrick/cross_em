@@ -20,10 +20,32 @@ the grid, and ends when it's correct or when you give up. Use as many letters
 as you can. When the game is over, "Copy result" puts your result on the
 clipboard, ready to paste.
 
-On a keyboard you can also type a letter to pick it up. Esc puts it down or
-closes a sheet, Backspace sends back the letter placed last, Space shuffles,
-and ? opens How to play. Once the game is over, Ctrl+C (Cmd+C on a Mac)
-copies the result and Enter plays the next puzzle when it's ready.
+The calendar in the header (or "Past puzzles" after a game) lists every
+puzzle back to No. 1 with how you did. Open a finished day to see your board,
+and play any day again for fun. Practice games are marked as practice, are
+never saved, and never change your statistics; the first play of each day is
+the one that counts.
+
+### On a keyboard
+
+Type a whole word and press Enter (or Space). The game puts its letters where
+the word fits, using letters already on the board where they match. If it fits
+more than one place, the places are numbered on the board.
+
+| Key | What it does |
+| --- | --- |
+| A–Z | Type a word |
+| Enter, Space | Place it. With nothing typed, Enter plays the next puzzle when it's ready and Space shuffles |
+| Tab, arrows | When a word fits several places, show the next one (Shift+Tab, Up, Left: the one before) |
+| 1–9 | Place the word in that numbered place |
+| Backspace | Delete the last letter typed. With nothing typed, take back the last word placed, then the one before |
+| Esc | Go back from choosing a place, clear what you typed, put down a letter, or close a sheet |
+| ? | How to play |
+| Ctrl+C (Cmd+C on a Mac) | Copy the result once the game is over |
+| F11 | Fullscreen |
+
+In Past puzzles, Up and Down move from day to day, Page Up, Page Down, Home and
+End move further, and Enter opens the day.
 
 ## Getting the game
 
@@ -65,7 +87,8 @@ bundle exec rake test
 
 The tests cover the rules without opening a window: the daily letters (all of
 the original's test vectors), the pool and grid, word checking, winning and
-giving up, saving and restoring, statistics, and the exact share text. They
+giving up, saving and restoring, statistics, the exact share text, where a
+typed word fits, and that practice games are never saved. They
 also cover the pure-Ruby parts of the presentation, such as the layout, the
 board's fit and panning, input routing, the words on screen, and the sounds.
 
@@ -81,6 +104,10 @@ CROSS_EM_SAVE_AS=try CROSS_EM_TODAY=2026-11-05 CROSS_EM_WINDOW=390x844 \
 CROSS_EM_SCRIPT=close,word:MITER:0:0:across,word:WALKER:3:-4:down,word:JAK:2:-3:across \
   lota run .
 ```
+
+Scripts can also type, as a player at a keyboard would
+(`type:MITER,key:return,key:tab`), and visit the archive
+(`archive`, `day:1700`, `again`, `today`).
 
 `ruby script/solve.rb 2026-11-05` finds boards that win a day's puzzle, and
 prints each one as a script like the one above. `ruby script/preview_sounds.rb
