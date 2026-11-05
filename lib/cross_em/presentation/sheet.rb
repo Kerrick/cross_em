@@ -4,9 +4,11 @@ module CrossEm
   module Presentation
     # One piece of a sheet's content, top to bottom: a heading, a
     # paragraph, a bullet, small print, a license file shown line for
-    # line, some space, a setting to switch, or a row of buttons.
-    class Block < Data.define(:kind, :text, :id, :detail, :buttons)
-      def initialize(kind:, text: nil, id: nil, detail: nil, buttons: nil) = super
+    # line, some space, a setting to switch, a row of buttons, or a
+    # small example board: +tiles+ as [letter, column, row] and a
+    # +target+ as [column, row].
+    class Block < Data.define(:kind, :text, :id, :detail, :buttons, :tiles, :target)
+      def initialize(kind:, text: nil, id: nil, detail: nil, buttons: nil, tiles: nil, target: nil) = super
 
       def self.heading(text) = new(kind: :heading, text:)
       def self.subheading(text) = new(kind: :subheading, text:)
@@ -17,6 +19,7 @@ module CrossEm
       def self.space = new(kind: :space)
       def self.toggle(id, text, detail) = new(kind: :toggle, id:, text:, detail:)
       def self.buttons(buttons) = new(kind: :buttons, buttons:)
+      def self.example(tiles, target) = new(kind: :example, tiles:, target:)
     end
 
     # A sheet over the Play screen: How to play, or Credits, and how far
@@ -35,12 +38,27 @@ module CrossEm
     # +wrap(style, text, width)+ with the lines and +line_height(style)+
     # in pixels; the shell measures with the real fonts, tests with a
     # stand-in.
-    class SheetLayout < Data.define(:card, :title, :close, :body, :lines, :controls, :content_height)
+    class SheetLayout < Data.define(:card, :title, :close, :body, :lines, :controls, :examples, :content_height)
       # A line of text at (+x+, +y+), +y+ from the body's top.
       class Line < Data.define(:style, :text, :x, :y); end
 
       # Something to tap, its +rect+'s y from the body's top.
       class Control < Data.define(:id, :kind, :rect, :text, :detail, :primary); end
+
+      # A small board drawn in the sheet: a patch of graph paper, +rect+'s
+      # y from the body's top, with cells +cell+ pixels square, the
+      # +tiles+ ([letter, column, row]) and a +target+ ([column, row]).
+      class Example < Data.define(:rect, :cell, :tiles, :target)
+        # Where the cell at (+column+, +row+) is, inside +rect+ moved to
+        # +origin+.
+        def cell_rect(column, row, origin)
+          columns = (tiles.map { it[1] } + [target[0]]).max + 1
+          rows = (tiles.map { it[2] } + [target[1]]).max + 1
+          left = origin.x + ((rect.width - (columns * cell)) / 2)
+          top = origin.y + ((rect.height - (rows * cell)) / 2)
+          Rect.new(x: left + (column * cell), y: top + (row * cell), width: cell, height: cell)
+        end
+      end
 
       M = Look::METRICS
 
@@ -62,7 +80,7 @@ module CrossEm
       class Builder
         def initialize(safe:, units:, measure:)
           @safe, @u, @measure = safe, units, measure
-          @lines, @controls = [], []
+          @lines, @controls, @examples = [], [], []
           @y = 0
         end
 
@@ -84,7 +102,7 @@ module CrossEm
                            width: px(M.touch), height: px(M.touch))
           body = Rect.new(x: card.x + @pad, y: title.bottom, width: @width, height: card.bottom - title.bottom)
           SheetLayout.new(card:, title:, close:, body:, lines: @lines.freeze, controls: @controls.freeze,
-                          content_height: content)
+                          examples: @examples.freeze, content_height: content)
         end
 
         private
@@ -102,6 +120,7 @@ module CrossEm
           when :space then @y += px(10)
           when :toggle then toggle(block)
           when :buttons then buttons(block.buttons)
+          when :example then example(block)
           end
         end
 
@@ -156,6 +175,17 @@ module CrossEm
           @controls << Control.new(id: block.id, kind: :toggle, rect:, text: block.text, detail: block.detail,
                                    primary: false)
           @y += height
+        end
+
+        # A patch of graph paper the body's width, as tall as the example's
+        # rows of cells and a margin.
+        def example(block)
+          cell = px(40)
+          rows = (block.tiles.map { it[2] } + [block.target[1]]).max + 1
+          @y += px(4)
+          rect = Rect.new(x: 0, y: @y, width: @width, height: (rows * cell) + (2 * px(14)))
+          @examples << Example.new(rect:, cell:, tiles: block.tiles, target: block.target)
+          @y = rect.bottom + px(10)
         end
 
         def buttons(buttons)

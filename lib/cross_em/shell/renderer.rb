@@ -17,7 +17,7 @@ module CrossEm
         @pool = PoolPainter.new(pen, tiles)
         @header = HeaderPainter.new(pen)
         @panel = PanelPainter.new(pen, buttons)
-        @sheet = SheetPainter.new(pen, buttons)
+        @sheet = SheetPainter.new(pen, buttons, tiles)
         @flights = FlightPainter.new(pen, tiles, @board, @pool)
         @confetti = ConfettiPainter.new(pen)
       end

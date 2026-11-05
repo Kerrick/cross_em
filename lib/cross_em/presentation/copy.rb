@@ -20,6 +20,9 @@ module CrossEm
       LOST = "Game over"
       STAT_LABELS = ["Played", "Win %", "Streak", "Best streak"].freeze
 
+      # How to play's picture: WORD across, and ROW down from its R.
+      EXAMPLE = [["W", 0, 0], ["O", 1, 0], ["R", 2, 0], ["D", 3, 0], ["O", 2, 1], ["W", 2, 2]].freeze
+
       # The credit the word list asks for, word for word.
       WORD_LIST_CREDIT = "Word list based on SCOWL by Kevin Atkinson and the sources it credits, including ENABLE " \
                          "and the UK Advanced Cryptics Dictionary, Copyright (c) J Ross Beresford 1993-1999. All " \
@@ -76,6 +79,9 @@ module CrossEm
         [
           Block.body("Make connected words, crossword style, from the day's twelve letters. " \
                      "There are new letters every day."),
+          Block.example(EXAMPLE, [3, 1]),
+          Block.small("WORD and ROW cross at the R. The glowing square is a place the next letter can go."),
+          Block.space,
           Block.bullet("Tap a letter in the pool to pick it up, then tap a glowing square on the grid to place it."),
           Block.bullet("Tap a placed letter to send it back to the pool."),
           Block.bullet("Every word, across and down, must be a real word of 3 letters or more, " \

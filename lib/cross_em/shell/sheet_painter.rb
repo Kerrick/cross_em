@@ -6,8 +6,8 @@ module CrossEm
     # with its title and a close button, and the body, which scrolls,
     # clipped to the card, with a thin bar to show where it is.
     class SheetPainter
-      def initialize(pen, buttons)
-        @pen, @buttons = pen, buttons
+      def initialize(pen, buttons, tiles)
+        @pen, @buttons, @tiles = pen, buttons, tiles
       end
 
       def draw(play)
@@ -53,12 +53,33 @@ module CrossEm
 
             mark(line, body, y, line_height)
           end
+          layout.examples.each do |example|
+            rect = example.rect.offset(body.x, top)
+            example(example, rect) unless rect.bottom < body.y || rect.y > body.bottom
+          end
           layout.controls.each do |control|
             rect = control.rect.offset(body.x, top)
             next if rect.bottom < body.y || rect.y > body.bottom
 
             control.kind == :toggle ? toggle(rect, control, play.settings) : button(rect, control, play)
           end
+        end
+      end
+
+      # A patch of the game's graph paper with a few tiles crossing on it
+      # and a glowing square, drawn as the board draws them.
+      def example(example, rect)
+        palette = @pen.palette
+        @pen.fill(rect, palette.page, radius: @pen.px(10))
+        cells = (-1..8).flat_map { |column| (-1..4).map { |row| example.cell_rect(column, row, rect) } }
+        size = @pen.stroke(2)
+        @pen.clip(rect.inset(@pen.px(4))) do
+          cells.each { @pen.fill(Presentation::Rect.new(x: it.x - (size / 2), y: it.y - (size / 2), width: size, height: size), palette.grid_dot) }
+        end
+        inset = ->(cell) { cell.inset([(cell.width * 0.05).round, 2].max) }
+        @tiles.target(inset.(example.cell_rect(*example.target, rect)))
+        example.tiles.each do |letter, column, row|
+          @tiles.draw(inset.(example.cell_rect(column, row, rect)), letter, depth: @pen.px(3))
         end
       end
 

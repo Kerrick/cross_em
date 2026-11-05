@@ -15,6 +15,20 @@ class SheetTest < Minitest::Test
     layout.lines.each { assert_operator it.text.length * 8, :<=, layout.body.width }
   end
 
+  def test_an_example_board_takes_its_rows_of_room_and_centres_its_cells
+    layout = build([Block.body("Before."), Block.example([["A", 0, 0], ["B", 1, 0], ["C", 1, 1]], [2, 1]),
+                    Block.body("After.")])
+    example = layout.examples.first
+
+    assert_operator example.rect.y, :>=, layout.lines.first.y + 20
+    assert_operator layout.lines.last.y, :>=, example.rect.bottom
+    assert_equal layout.body.width, example.rect.width
+    first, last = example.cell_rect(0, 0, example.rect), example.cell_rect(2, 1, example.rect)
+
+    assert_equal example.rect.right - last.right, first.x - example.rect.x
+    assert_equal example.rect.bottom - last.bottom, first.y - example.rect.y
+  end
+
   def test_a_license_keeps_its_lines_and_scrolls_when_long
     text = (1..200).map { "Line #{it} of the license." }.join("\n")
     layout = build([Block.license(text)])
