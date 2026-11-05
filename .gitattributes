@@ -1,0 +1,13 @@
+# The word list and every license ship byte for byte, on every platform:
+# no line-ending conversion on checkout (Windows CI builds from one).
+wordlist.txt -text
+wordlist-COPYRIGHT.txt -text
+*.txt -text
+LICENSE -text
+
+# Fonts, images and icons are binary.
+*.ttf binary
+*.otf binary
+*.png binary
+*.icns binary
+*.ico binary
