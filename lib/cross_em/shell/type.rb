@@ -21,7 +21,8 @@ module CrossEm
       def status = fonts.sans_bold(px(S.status))
       def reason = fonts.sans(px(S.reason))
       def button = fonts.sans_bold(px(S.button))
-      def heading = fonts.slab(px(S.heading))
+      # The results' heading, smaller when the window is short of room.
+      def heading(room = nil) = fonts.slab(px(room && room < px(60) ? S.heading - 6 : S.heading))
       def subheading = fonts.sans(px(S.subheading))
       def stat = fonts.sans_bold(px(S.stat))
       def stat_label = fonts.sans(px(S.stat_label))

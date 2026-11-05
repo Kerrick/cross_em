@@ -27,26 +27,67 @@ module CrossEm
 
       M = Look::METRICS
 
+      # How tightly a layout packs: the gap between parts, between pool
+      # tiles, the results' heading and statistics, and, once the game is
+      # over and the pool can no longer be tapped, its largest tile.
+      class Fit < Data.define(:gap, :tile_gap, :heading, :stats, :pool_max); end
+
+      FITS = [
+        Fit.new(gap: M.gap, tile_gap: M.tile_gap, heading: M.heading, stats: M.stats, pool_max: M.tile_max),
+        Fit.new(gap: 8, tile_gap: 4, heading: 52, stats: 50, pool_max: M.tile_max),
+        *[36, 30, 24].map { Fit.new(gap: 8, tile_gap: 4, heading: 52, stats: 50, pool_max: it) }
+      ].freeze
+
+      # The layout for a window: upright or wide as its shape suggests,
+      # as roomy as leaves the board at least one whole cell and keeps
+      # everything on screen; failing that, the other way round; failing
+      # that, whichever leaves the board the most room.
       def self.for(width:, height:, units:, safe: nil, over: false, pool: true)
-        Planner.new(width:, height:, units:, safe: safe || Rect.new(x: 0, y: 0, width:, height:), over:, pool:).layout
+        safe = Rect.new(x: 0, y: 0, width:, height:) if safe.nil? || safe.empty?
+        natural = Planner.landscape?(safe, units)
+        plans = [natural, !natural].product(FITS).lazy.map do |landscape, fit|
+          Planner.new(width:, height:, units:, safe:, over:, pool:, landscape:, fit:).layout
+        end
+        plans.find { it.fits?(safe, units) } || plans.max_by { [it.board.width, it.board.height].min }
+      end
+
+      # The least room the board may have: one smallest cell and the
+      # padding around it.
+      def self.least_board(units) = units.px(M.cell_min + (2 * M.board_pad))
+
+      # Whether the board has room for a cell and every part is on screen.
+      def fits?(safe, units)
+        least = Layout.least_board(units)
+        board.width >= least && board.height >= least && parts.all? { safe.contains?(it.x, it.y) && it.bottom <= safe.bottom && it.right <= safe.right }
+      end
+
+      def parts
+        [header, status, *pool, *controls&.each&.map(&:last), *results&.then { [it.heading, *it.stats, it.countdown, it.copy] }].compact
       end
 
       def header_buttons = [[:help, help_button], [:theme, theme_button], [:sound, sound_button]]
 
       # Works out a Layout. One is made for every window size and state.
       class Planner
-        def initialize(width:, height:, units:, safe:, over:, pool:)
-          @width, @height, @u, @over, @pool = width, height, units, over, pool
-          @safe = safe.empty? ? Rect.new(x: 0, y: 0, width:, height:) : safe
+        # Wide enough, in points, to put the pool beside the board, as a
+        # phone on its side is.
+        def self.landscape?(safe, units)
+          wide, tall = units.pt(safe.width), units.pt(safe.height)
+          wide >= tall * 1.1 && wide >= 560
+        end
+
+        def initialize(width:, height:, units:, safe:, over:, pool:, landscape:, fit:)
+          @width, @height, @u, @over, @pool, @landscape, @fit = width, height, units, over, pool, landscape, fit
+          @safe = safe
           @margin = px(M.margin)
-          @gap = px(M.gap)
+          @gap = px(fit.gap)
         end
 
         def layout
           header = Rect.new(x: @safe.x + @margin, y: @safe.y, width: @safe.width - (2 * @margin), height: px(M.header))
           help, theme, sound = header_buttons(header)
-          parts = landscape? ? side_column(header) : bottom_stack(header)
-          Layout.new(width: @width, height: @height, landscape: landscape?, header:,
+          parts = @landscape ? side_column(header) : bottom_stack(header)
+          Layout.new(width: @width, height: @height, landscape: @landscape, header:,
                      wordmark: header.with(width: help.x - header.x), help_button: help, theme_button: theme,
                      sound_button: sound, **parts)
         end
@@ -54,12 +95,6 @@ module CrossEm
         private
 
         def px(points) = @u.px(points)
-
-        # Wide enough, in points, to put the pool beside the board.
-        def landscape?
-          wide, tall = @u.pt(@safe.width), @u.pt(@safe.height)
-          wide >= tall * 1.1 && wide >= 600
-        end
 
         def header_buttons(header)
           size = px(M.touch)
@@ -77,13 +112,13 @@ module CrossEm
 
           if @over
             row = centered(inner, bottom - px(M.controls), px(M.controls))
-            stats = inner.with(y: row.y - @gap - px(M.stats), height: px(M.stats))
+            stats = inner.with(y: row.y - @gap - px(@fit.stats), height: px(@fit.stats))
             top = stats.y - @gap
             if @pool
               pool_slots = shift(pool_slots, top - pool_height)
               top -= pool_height + @gap
             end
-            heading = inner.with(y: top - px(M.heading), height: px(M.heading))
+            heading = inner.with(y: top - px(@fit.heading), height: px(@fit.heading))
             parts[:results] = results(heading, stats, row)
             top = heading.y
           else
@@ -108,7 +143,7 @@ module CrossEm
                             height: @safe.bottom - @margin - header.bottom)
           pool_slots, pool_height = pool(column.x, column.width)
           heights = if @over
-                      [px(M.heading), (@pool ? pool_height : nil), px(M.stats), px(M.controls)].compact
+                      [px(@fit.heading), (@pool ? pool_height : nil), px(@fit.stats), px(M.controls)].compact
                     else
                       [px(M.status), pool_height, px(M.controls)]
                     end
@@ -117,13 +152,13 @@ module CrossEm
           parts = {status: nil, controls: nil, results: nil}
 
           if @over
-            heading = column.with(y: top, height: px(M.heading))
+            heading = column.with(y: top, height: px(@fit.heading))
             top = heading.bottom + @gap
             if @pool
               pool_slots = shift(pool_slots, top)
               top += pool_height + @gap
             end
-            stats = column.with(y: top, height: px(M.stats))
+            stats = column.with(y: top, height: px(@fit.stats))
             row = centered(column, stats.bottom + @gap, px(M.controls))
             parts[:results] = results(heading, stats, row)
           else
@@ -139,16 +174,22 @@ module CrossEm
 
         # The twelve slots, in rows of six, or four when six would make a
         # tile smaller than a fingertip, centred across +width+; and their
-        # height. Their top is 0 until shifted into place.
+        # height. Their top is 0 until shifted into place. Once the game
+        # is over nothing in the pool is tapped again, so it stays in rows
+        # of six and may shrink to the Fit's largest tile.
         def pool(left, width)
-          gap = px(M.tile_gap)
+          gap = px(@fit.tile_gap)
           per_row = Rules::POOL_ROW_LENGTH
           tile = (width - (gap * (per_row - 1))) / per_row
-          if tile < px(M.tile_min)
+          if tile < px(M.tile_min) && !@over
+            gap = [gap, px(4)].min
+            tile = (width - (gap * (per_row - 1))) / per_row
+          end
+          if tile < px(M.tile_min) && !@over
             per_row = 4
             tile = (width - (gap * (per_row - 1))) / per_row
           end
-          tile = tile.clamp(1, px(M.tile_max))
+          tile = tile.clamp(1, px(@over ? @fit.pool_max : M.tile_max))
           rows = Rules::LETTER_COUNT / per_row
           start = left + ((width - ((per_row * tile) + ((per_row - 1) * gap))) / 2)
           slots = Array.new(Rules::LETTER_COUNT) do |i|

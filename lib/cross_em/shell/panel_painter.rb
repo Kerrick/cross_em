@@ -77,9 +77,9 @@ module CrossEm
         palette = @pen.palette
         game = play.game
         status = play.status
-        heading = @pen.type.heading
-        sub = @pen.type.subheading
         rect = results.heading
+        heading = @pen.type.heading(rect.height)
+        sub = @pen.type.subheading
         gap = @pen.px(4)
         total = heading.height + gap + sub.height
         top = rect.y + ((rect.height - total) / 2)

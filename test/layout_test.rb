@@ -99,4 +99,36 @@ class LayoutTest < Minitest::Test
     assert_empty without.pool
     assert_operator without.board.height, :>, with_pool.board.height
   end
+
+  def test_every_window_from_a_small_phone_up_leaves_the_board_a_cell
+    least = Look::METRICS.cell_min + (2 * Look::METRICS.board_pad)
+    (320..1400).step(37).each do |width|
+      [*(320..1100).step(41), 480].each do |height|
+        next if [width, height].max < 480 # smaller than any phone, either way up
+
+        [[false, true], [true, true], [true, false]].each do |over, pool|
+          [1, 3].each do |scale|
+            layout = layout(width, height, scale:, over:, pool:)
+            where = "#{width}x#{height} pt at #{scale}x, over=#{over} pool=#{pool}"
+
+            assert_operator layout.board.height, :>=, least * scale, where
+            assert_operator layout.board.width, :>=, least * scale, where
+            assert layout.fits?(Rect.new(x: 0, y: 0, width: width * scale, height: height * scale), units(scale)), where
+          end
+        end
+      end
+    end
+  end
+
+  def test_a_phone_on_its_side_puts_the_pool_beside_the_board
+    assert layout(568, 320).landscape
+    assert layout(568, 320, over: true).landscape
+  end
+
+  def test_after_the_game_a_cramped_pool_shrinks_rather_than_the_board
+    cramped = layout(320, 480, over: true, pool: true)
+
+    assert_operator cramped.pool.first.width, :<, 44
+    assert_equal 6, cramped.pool.map(&:y).tally.values.first
+  end
 end
