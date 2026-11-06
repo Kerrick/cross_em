@@ -51,7 +51,7 @@ module CrossEm
         problems = check ? check.problems.keys.count { play.motion.checked?(it) } : 0
         placed = game.board.size
         under = if problems.positive? then reasons_line(Presentation::Copy.reasons(check), rect.width)
-                elsif game.board.empty? && play.keyboard? then :keys
+                elsif game.board.empty? && play.hints == :keys then :keys
                 end
         pip = @pen.px(12)
         gap = @pen.px(5)
@@ -126,22 +126,29 @@ module CrossEm
           return centered_text(note, @pen.type.reason, rect, y, @pen.palette.problem)
         end
 
-        typing.choosing? ? choosing_keys(typing.choice, rect, y, keys) : draft_keys(rect, y, keys, ready)
+        pad = play.hints == :pad ? play.pad_family : nil
+        typing.choosing? ? choosing_keys(typing.choice, rect, y, keys, pad) : draft_keys(rect, y, keys, ready, pad)
       end
 
-      # ⏎ places the word (in the accent when it is ready), Esc clears it.
-      def draft_keys(rect, y, height, ready)
-        keys = [[:return, ready ? @pen.palette.target : nil], ["Esc", nil]]
+      # ⏎ places the word (in the accent when it is ready), Esc clears it;
+      # at a controller, A and B.
+      def draft_keys(rect, y, height, ready, pad)
+        go, back = pad ? [glyph(:a, pad), glyph(:b, pad)] : [:return, "Esc"]
+        keys = [[go, ready ? @pen.palette.target : nil], [back, nil]]
         row(rect, y, keys.map { |label, color| [@keys.width(label, height), ->(x) { @keys.draw(label, x, y, height, color:) }] })
       end
 
-      # "1/3", then Tab for the next place, ⏎ to place it, Esc to go back.
-      def choosing_keys(choice, rect, y, height)
+      def glyph(button, family) = Presentation::PadGlyph.new(button:, family:)
+
+      # "1/3", then Tab for the next place, ⏎ to place it, Esc to go back;
+      # at a controller, the d-pad shows the next, so only A and B.
+      def choosing_keys(choice, rect, y, height, pad)
         font = @pen.type.fonts.sans_bold(@pen.px(14))
         count = Presentation::Copy.of(choice.index, choice.size)
         color = @pen.palette.target
         parts = [[font.width(count), ->(x) { @pen.text(count, font, x, y + ((height - font.height) / 2.0), color) }]]
-        parts += [["Tab", nil], [:return, color], ["Esc", nil]].map do |label, ink|
+        keys = pad ? [[glyph(:a, pad), color], [glyph(:b, pad), nil]] : [["Tab", nil], [:return, color], ["Esc", nil]]
+        parts += keys.map do |label, ink|
           [@keys.width(label, height), ->(x) { @keys.draw(label, x, y, height, color: ink) }]
         end
         row(rect, y, parts)

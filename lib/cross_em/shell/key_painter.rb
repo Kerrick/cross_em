@@ -6,6 +6,11 @@ module CrossEm
     # player is shown which key does what: a rounded cap with a deeper
     # lower edge, labelled "Esc" or "Tab", or with the return arrow.
     # Recognising a key is quicker than reading what it does.
+    #
+    # A controller's button (Presentation::PadGlyph) is drawn the same
+    # way, as its own controller shows it: a face button round, with its
+    # letter or, on a PlayStation controller, its shape; a bumper or Back
+    # and Start as a pill.
     class KeyPainter
       def initialize(pen)
         @pen = pen
@@ -14,6 +19,8 @@ module CrossEm
       # How wide the key labelled +label+ (a String, or :return) is drawn
       # +height+ pixels tall.
       def width(label, height)
+        return glyph_width(label, height) if label.is_a?(Presentation::PadGlyph)
+
         inner = label.is_a?(Symbol) ? (height * 0.7).round : font(height).width(label)
         [height, inner + @pen.px(10)].max
       end
@@ -25,6 +32,8 @@ module CrossEm
         palette = @pen.palette
         color ||= palette.ink_muted
         rect = Presentation::Rect.new(x: x.round, y: y.round, width: width(label, height), height:)
+        return glyph(label, rect, color, alpha) if label.is_a?(Presentation::PadGlyph)
+
         radius = @pen.px(4)
         edge = @pen.px(2)
         @pen.fill(rect, color, alpha: 0.55 * alpha, radius:)
@@ -50,6 +59,54 @@ module CrossEm
       end
 
       private
+
+      def glyph_width(glyph, height)
+        return height if glyph.round?
+
+        label = glyph.label
+        inner = label.is_a?(Symbol) ? (height * 0.7).round : font(height).width(label)
+        [(height * 1.5).round, inner + @pen.px(12)].max
+      end
+
+      # A controller's button: a cap as round as a face button, or a pill,
+      # with the same deeper lower edge as a key.
+      def glyph(glyph, rect, color, alpha)
+        palette = @pen.palette
+        edge = @pen.px(2)
+        radius = (rect.height - edge) / 2
+        @pen.fill(rect, color, alpha: 0.55 * alpha, radius:)
+        cap = rect.with(height: rect.height - edge)
+        @pen.fill(cap, palette.card, alpha:, radius:)
+        @pen.outline(cap, color, width: @pen.stroke(1), alpha:, radius:)
+        label = glyph.label
+        label.is_a?(Symbol) ? shape(label, cap, color, alpha) : @pen.centered(label, font(rect.height), cap, color, alpha:)
+        rect.width
+      end
+
+      # A PlayStation face button's shape, or Back's two windows (View)
+      # and Start's three lines (Menu).
+      def shape(name, cap, color, alpha)
+        w = @pen.stroke(1.5)
+        cx, cy = cap.center_x, cap.center_y
+        r = cap.height * 0.24
+        case name
+        when :cross
+          @pen.line(color, w, cx - r, cy - r, cx + r, cy + r, alpha:)
+          @pen.line(color, w, cx - r, cy + r, cx + r, cy - r, alpha:)
+        when :circle then @pen.circle(:line, color, cx, cy, r, alpha:, width: w)
+        when :square then @pen.line(color, w, cx - r, cy - r, cx + r, cy - r, cx + r, cy + r, cx - r, cy + r, cx - r, cy - r, alpha:)
+        when :triangle then @pen.line(color, w, cx, cy - r, cx + r, cy + (r * 0.8), cx - r, cy + (r * 0.8), cx, cy - r, alpha:)
+        when :menu
+          [-1, 0, 1].each { |i| @pen.line(color, w, cx - r, cy + (i * r * 0.6), cx + r, cy + (i * r * 0.6), alpha:) }
+        when :view
+          s = r * 0.8
+          @pen.line(color, w, cx - s - (s * 0.4), cy - s + (s * 0.4), cx - s - (s * 0.4), cy + s + (s * 0.4),
+                    cx + s - (s * 0.4), cy + s + (s * 0.4), alpha:)
+          @pen.line(color, w, cx - s + (s * 0.4), cy - s - (s * 0.4), cx + s + (s * 0.4), cy - s - (s * 0.4),
+                    cx + s + (s * 0.4), cy + s - (s * 0.4), cx - s + (s * 0.4), cy + s - (s * 0.4),
+                    cx - s + (s * 0.4), cy - s - (s * 0.4), alpha:)
+        end
+      end
 
       # ⌫: an arrow pointing left.
       def back_arrow(cap, color, alpha)
