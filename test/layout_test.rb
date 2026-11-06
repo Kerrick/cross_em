@@ -92,6 +92,17 @@ class LayoutTest < Minitest::Test
     assert_operator over.results.countdown.right, :<=, over.results.copy.x
   end
 
+  def test_with_every_letter_down_the_empty_pool_makes_room_for_the_board
+    [[390, 844], [1280, 800]].each do |width, height|
+      with_pool = layout(width, height)
+      without = layout(width, height, pool: false)
+
+      assert_empty without.pool
+      assert_operator without.board.height, :>, with_pool.board.height if width < height
+      assert_operator without.status.bottom, :<=, without.controls.shuffle.y
+    end
+  end
+
   def test_after_a_win_the_empty_pool_makes_room_for_the_board
     with_pool = layout(390, 844, over: true, pool: true)
     without = layout(390, 844, over: true, pool: false)

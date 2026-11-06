@@ -160,13 +160,14 @@ module CrossEm
             row = centered(inner, bottom - px(M.controls), px(M.controls))
             parts[:controls] = controls(row)
             pool_slots = shift(pool_slots, row.y - @gap - pool_height)
-            status = inner.with(y: pool_slots.first.y - @gap - px(M.status), height: px(M.status))
+            above = @pool ? pool_slots.first.y : row.y
+            status = inner.with(y: above - @gap - px(M.status), height: px(M.status))
             parts[:status] = status
             top = status.y
           end
 
           board = Rect.new(x: @safe.x, y: header.bottom, width: @safe.width, height: [top - @gap / 2 - header.bottom, 0].max)
-          {board:, pool: @over && !@pool ? [] : pool_slots, **parts}
+          {board:, pool: @pool ? pool_slots : [], **parts}
         end
 
         # Wide: a column on the right, its parts centred top to bottom in
@@ -181,7 +182,7 @@ module CrossEm
                       [px(@fit.heading), (@pool ? pool_height : nil), px(@fit.stats), px(M.controls),
                        (@fit.one_row ? nil : px(M.controls))].compact
                     else
-                      [px(M.status), pool_height, px(M.controls)]
+                      [px(M.status), (@pool ? pool_height : nil), px(M.controls)].compact
                     end
           stack = heights.sum + (@gap * (heights.size - 1))
           top = column.y + [(column.height - stack) / 2, 0].max
@@ -201,12 +202,13 @@ module CrossEm
           else
             parts[:status] = column.with(y: top, height: px(M.status))
             pool_slots = shift(pool_slots, top + px(M.status) + @gap)
-            parts[:controls] = controls(centered(column, pool_slots.last.bottom + @gap, px(M.controls)))
+            below = @pool ? pool_slots.last.bottom : parts[:status].bottom
+            parts[:controls] = controls(centered(column, below + @gap, px(M.controls)))
           end
 
           board = Rect.new(x: @safe.x, y: header.bottom, width: column.x - @gap - @safe.x,
                            height: @safe.bottom - header.bottom)
-          {board:, pool: @over && !@pool ? [] : pool_slots, **parts}
+          {board:, pool: @pool ? pool_slots : [], **parts}
         end
 
         # The twelve slots, in rows of six, or four when six would make a

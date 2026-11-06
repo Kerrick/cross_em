@@ -52,7 +52,7 @@ module CrossEm
 
       def placed(event)
         @placed << event.position
-        slot = @play.layout.pool[event.index]
+        slot = @play.pool_slot(event.index)
         lift = @play.units.px(Look::METRICS.lift) * @motion.lift(event.index)
         @motion.left(event.index)
         @lifted_slot = nil
@@ -74,7 +74,7 @@ module CrossEm
         @lifted_slot = @game.selected
         @motion.moved_lift(@game.selected)
         order.each_with_index do |old, new|
-          @motion.fly([:slot, new], @play.layout.pool[old], :shuffle) if @game.pool.letter?(new) && old != new
+          @motion.fly([:slot, new], @play.pool_slot(old), :shuffle) if @game.pool.letter?(new) && old != new
         end
       end
 

@@ -76,11 +76,13 @@ module CrossEm
 
       # --- What the painters read ---
 
-      def layout
-        over = game.over?
-        pool = !over || !game.pool.empty?
-        @layouts[[over, pool]] ||= Layout.for(width: @width, height: @height, safe: @safe, units:, over:, pool:)
-      end
+      # Where everything goes. Once the pool is empty, during play as
+      # after it, its sockets give their room to the board.
+      def layout = layout_for(pool: !game.pool.empty?)
+
+      # Where pool slot +index+ is, even while the pool is hidden: where
+      # the twelfth letter leaves from as the pool gives way.
+      def pool_slot(index) = layout_for(pool: true).pool[index]
 
       # The board's view, refitted whenever the board's room changes.
       def view
@@ -412,6 +414,11 @@ module CrossEm
       def disarm = @armed_at = nil
 
       private
+
+      def layout_for(pool:)
+        over = game.over?
+        @layouts[[over, pool]] ||= Layout.for(width: @width, height: @height, safe: @safe, units:, over:, pool:)
+      end
 
       def safe_rect = @safe || Rect.new(x: 0, y: 0, width: @width, height: @height)
 
