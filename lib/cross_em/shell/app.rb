@@ -37,6 +37,7 @@ module CrossEm
         @play.open(:help, sound: false) unless settings.instructions_seen
         development_settings
         ::Lota::Window.set_fullscreen(true, :desktop) if TOUCH_SYSTEMS.include?(@os)
+        listen_for_typing
       end
 
       def update(seconds)
@@ -181,6 +182,16 @@ module CrossEm
       def toggle_fullscreen
         fullscreen, = ::Lota::Window.fullscreen
         ::Lota::Window.set_fullscreen(!fullscreen, :desktop)
+      end
+
+      # Typed letters reach Lota.textinput only while text input is on,
+      # and the window opens with it off, even on a computer. A phone or
+      # tablet leaves it off, since turning it on raises the on-screen
+      # keyboard over the board.
+      def listen_for_typing
+        ::Lota::Keyboard.text_input = true unless touch?
+      rescue StandardError => e
+        warn "Cross ’em: typing a word won't work (#{e.message})"
       end
 
       # --- Development settings (main.rb lists them) ---
