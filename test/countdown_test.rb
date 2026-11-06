@@ -5,7 +5,7 @@ require "test_helper"
 class CountdownTest < Minitest::Test
   include CrossEm
 
-  def test_it_counts_to_the_next_utc_midnight
+  def test_it_counts_to_the_next_rollover_at_nine_utc
     now = Time.utc(2026, 11, 5, 14, 2, 3)
 
     assert_equal "18:57:57", Countdown.between(now, Day.today(now).ends_at).to_s
