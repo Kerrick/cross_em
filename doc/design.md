@@ -25,16 +25,20 @@ Johnson). Every state below has a shape or motion cue too.
 | Pool letter available | raised tile with its edge showing | ivory tile |
 | Pool letter selected | lifted higher (bigger, spread shadow, gentle bob), thick ring, a small caret beneath | ink ring |
 | Empty pool slot | a sunken dashed socket with an inner shadow, no tile | paper shade |
-| Empty board (until a letter is picked up) | the same sunken socket where the first letter will go | paper shade |
+| Empty board | one target where the first letter will go, breathing softly, brightening when a letter is picked up | accent |
 | Placed letter | tile flat on the grid, thin edge | ivory tile |
 | Target (only while a letter is selected) | dashed rounded square with a small "+", fading in and breathing | accent (blue-teal) |
 | Problem letter | diagonal hatching across the tile, an outline and a folded corner, a small shake as the check finds it | vermilion |
 | Finished letter (after the game) | inverted tile: dark face, light letter | ink blue |
 | Unused letter (after a loss) | a ghost of a tile (the unused face) with a dotted outline and a muted letter | muted |
-| Letter typed, not placed | a ghost tile: faint face, dashed outline, ink letter, in a strip where the status line was | ink, muted outline |
+| Letter typed, not placed | a ghost tile: faint face, dashed outline, ink letter, in the strip | ink, muted outline |
+| Typed letter that can't be had | the ghost tile hatched, with a folded corner, as soon as it is typed | vermilion |
+| Typed word whose letters can all be had | every ghost outlined in the accent, and the ⏎ key under it too | accent |
 | Pool letter a typed word would use | a short bar under its slot | muted ink |
-| A place a typed word fits (several) | the word's cells outlined, numbered on its first corner; the one shown has a solid outline, a filled number and its new letters as ghost tiles | accent |
-| Practice / looking back | a tag by the puzzle number, "Practice · doesn't count" or "Your board · read-only", for as long as the game is shown | ink outline |
+| Letters placed (the strip's pips) | twelve small squares: solid for each letter on the board, hollow for each in the pool | ink |
+| Problem letter (the strip's pips) | a pip outlined and struck through, as the sweep finds it | vermilion |
+| A place a typed word fits (several) | the one shown: its new letters as ghost tiles in a solid outline of the whole word, a filled number on its corner; each other: only the cells it would fill, dashed and faint, its number outlined in the first | accent |
+| Practice / looking back | a chip by the puzzle number with a dashed edge (nothing here is for keeps), a circling arrow and "Practice", or an eye and "Your board", and a × (a tap goes back to today) | ink, dashed outline |
 | Won | heading "Solved!", tiles flip in a diagonal wave, square confetti | green heading |
 | Lost | heading "Game over", tiles settle quietly, nothing celebrates | ink heading |
 
@@ -67,14 +71,15 @@ lighter ink.
 | tile face / edge / letter | `#FBF4E3` / `#D3BF97` / `#1F1A14` | `#E9DFC8` / `#A8956F` / `#1F1A14` | tiles |
 | unused face | tile face at 50% | tile face at 12% | letters left over after a loss (half strength turned into a grey slab on the night page) |
 | target | `#1F7A8C` | `#5CC4D6` | targets, the wordmark's apostrophe, the on switch |
-| problem | `#C8432B` | `#FF7A5C` | problem marks and reasons, the armed Give up |
+| problem | `#B23A24` | `#FF7A5C` | problem marks and reasons, the armed Give up |
 | finished face / edge / letter | `#24427F` / `#172C57` / `#FBF4E3` | `#4A73C9` / `#2F4F94` / `#FBF4E3` | finished tiles |
 | won | `#2E7D4F` | `#5BC08A` | "Solved!" |
 | glow | white at 60% | white at 16% | the check's sweep |
 
 Problem vermilion and target teal differ strongly in lightness as well as hue,
 so they stay apart for red-green color blindness; hatching, the folded corner
-and the "+" carry the meaning regardless. Confetti uses the share text's
+and the "+" carry the meaning regardless. The light page's vermilion is dark
+enough (5.1:1 on the page) for the small type of a problem's reason. Confetti uses the share text's
 colors: green, blue, yellow, teal and vermilion.
 
 ### Type
@@ -113,13 +118,16 @@ pixels.
 Designed in points, from a phone up:
 
 - **Portrait (phone, narrow window):** header (wordmark, puzzle number, four
-  44 pt icon buttons: Past puzzles, How to play, appearance, sound) at the top; the board fills the middle, edge to edge;
-  one status line; the pool as two rows of six; the controls row (Shuffle,
-  Reset, Give up) at the bottom, in thumb reach. Everything inside the safe
-  area.
+  44 pt icon buttons: Past puzzles, How to play, appearance, sound, each
+  named in a tooltip when a mouse rests on it) at the top; the board fills
+  the middle, edge to edge; the strip; the pool as two rows of six; the
+  controls row (Shuffle, Reset, Give up) at the bottom, in thumb reach.
+  Everything inside the safe area. Once every letter is down the pool's
+  twelve empty sockets give their room to the board, as after a win, and
+  come back with the first letter sent back.
 - **Landscape (tablet, desktop, a phone on its side; at least 560 pt wide and
   1.1× wider than tall):** the board takes the left, larger part; a column on
-  the right (38% of the width, 320–430 pt) holds the status line, the pool and
+  the right (38% of the width, 320–430 pt) holds the strip, the pool and
   the controls, centred top to bottom. Six tiles a row, or four if six would
   be under 44 pt.
 - **Short of room** (a small phone, a short window, the results), the layout
@@ -148,7 +156,7 @@ Designed in points, from a phone up:
   and the column hugged the window's far edge, so the halves never met; on
   the page they read as one spread. A window too short to fit the game on
   the page gives up the page before the board.
-- **After the game** the results take the status line's and the controls'
+- **After the game** the results take the strip's and the controls'
   place: the heading and what was good, the four statistics, the clock to the
   next puzzle and "Copy result", and under them a row with "Play again" and
   "Past puzzles". When even the smallest pool leaves no room (a phone on its
@@ -189,11 +197,15 @@ Motion hears each event after the fact and remembers where a tile came from.
   wave, and square confetti falls through the board.
 - Loss: no shake beyond the problems' and no confetti; good letters fade to
   their final faces, unused letters fade to outlines, and a soft two-note
-  phrase plays. The game says what was good: "7 of 12 letters crossed."
+  phrase plays. Under the heading, a finished tile and "7/12": how many
+  letters ended in good words, and, in vermilion, why the rest didn't.
 - The results fade in as the board settles.
 - The board's camera eases (250 ms) whenever its fit changes, even when the
   board's room changes at the end of the game. A drag takes over at once.
 
+- Enter on a typed word that fits nowhere shakes the draft, as a problem
+  letter shakes (320 ms), with the problem's thunk. Nothing is lost: the
+  draft stays to be edited.
 - A typed word's letters leave the pool one after another, 70 ms apart,
   each a tap's flight and clack, so the clacks climb the scale as a little
   run; a check its last letter sets off waits for that letter, as after a
@@ -241,34 +253,63 @@ muted, and without an audio device.
 
 ## Words (Podmajersky, Yifrah; `Presentation::Copy`)
 
-The status line always says what the player can do next, in their state:
+The game shows before it says. Reading is effortful and attention is
+short (Johnson, Hodent), so in play the board, the tiles and their marks
+carry what is going on, and the eye recognises a state rather than
+reading about it. Every word on the screen does a job nothing else can,
+and none repeats what the screen already shows (Strunk & White and
+Zinsser: omit needless words; White: every element earns its place;
+Lidwell: signal over noise; Saffer: bring the data forward, and let
+feedback fit the moment).
 
-- Nothing selected, the board empty: "Tap a letter to pick it up.", and on a
-  computer, under it, "Or type a word and press Enter."
-- Typing: the draft as ghost tiles, and under it "Enter places it. Esc
-  clears it." A word that fits nowhere keeps its draft and says why, in the
-  problem color: "CRAB needs a B that isn't in the pool.", "CRABB needs more
-  Bs than the pool has.", "CAT is already on the board.", "CRAB doesn't fit
-  anywhere on the board."
-- Choosing: "CRAB fits 3 places. Showing 1." and "Tab: next · 1–3: pick ·
-  Enter: place · Esc: back".
-- Nothing selected, letters placed: the same, and under it "9 letters left.
-  Tap a placed one to send it back."
-- A letter selected: "Now tap a glowing square to place it."
-- All placed, problems: "3 letters need fixing. Tap one to send it back."
-  (broken at the sentence when it needs two lines), followed by the reasons,
-  as many as fit and then "+2 more": "AZ is too short", "TCA isn't in the word
-  list", "DOG isn't connected", "Q is on its own". A word whose letters are
-  problems only because a bad word crosses it is not blamed.
-- Over: "Solved!" and "All 12 letters crossed.", or "Game over" and "7 of 12
-  letters crossed."
+- **The strip** under the board, where a status sentence used to be, is
+  twelve pips, one a letter: solid for each on the board, hollow for each
+  in the pool. It fills as the board does, so the rule that nothing is
+  checked until all twelve are down is seen rather than told; when the
+  check comes, the problem letters' pips turn to vermilion strikes as
+  the sweep finds them. Then, and only then, a line of small type gives
+  the reasons as briefly as they go ("AZ: too short", "TCA: not a word",
+  "DOG: not joined", "Q: alone", then "+2" when they run out of room).
+  The hatched tiles say which letters; the line says why.
+- **Teaching.** A first-time player has How to play, and an empty board
+  with one breathing glowing square, the thing the rules call a target.
+  On a computer, two keycaps, A–Z and ⏎, sit under the empty pips: a word
+  can be typed. A selected tile lifts and the targets glow, so "now tap a
+  glowing square" goes unsaid.
+- **Typing.** The draft is ghost tiles. A letter the pool and the board
+  can't supply between them is hatched with a folded corner the moment it
+  is typed: a letter on the board can be used again only by crossing it,
+  so the most of a letter any word can use is the pool's count plus the
+  board's, and in CHECKED with one E to be had the second E is marked.
+  That is counting, never the word list (`WordFit#short`). A word whose
+  letters can all be had turns the accent: ready. Under it, keycaps: ⏎ (in
+  the accent when ready) and Esc. Enter with no place shakes the draft
+  with a thunk (Swink, and Juice It or Lose It: under 100 ms, and felt;
+  Juul: a failure whose cause can be seen is fair). Only when the letters
+  are all there but the word still has no place are there words: "No
+  room" or "Already there".
+- **Choosing.** "1/3" in the accent, then Tab, ⏎ and Esc as keycaps; the
+  places are numbered on the board, and a click or tap on one puts the
+  word there.
+- **What doesn't count** wears a chip (see the state table), in the
+  header for as long as it is shown and in place of the statistics on its
+  results, so a practice result can't be mistaken for the day's. A tap
+  on the chip goes back to today.
+- **Counts** are a glyph and a number: "7/12" beside a finished tile in
+  the results, a glyph and "7/12" for each day in Past puzzles. "Crossed"
+  is no longer used to mean "in a good word".
 
-Buttons name their action: "Shuffle", "Reset", "Give up" (which turns
-vermilion and asks "Give up? Tap again" for three seconds before it acts),
-"Copy result" (then "Copied" for a few seconds, with a ding, or
-"Couldn't copy" if the clipboard refused it), "Play No. 1721"
-once the clock runs out. A label too long for its button wraps onto two lines
-in a smaller size rather than being cut off.
+Words stay where they do a job: buttons, short verbs naming their action
+("Shuffle", "Reset", "Give up", which turns vermilion and asks "Give up?"
+for three seconds before it acts; "Copy result", then "Copied" with a
+ding, or "Couldn't copy"; "Play again"; "Back to today"; "Play No. 1721"
+once the clock runs out); the result's heading, "Solved!" or "Game over";
+the clock, "Next puzzle" over HH:MM:SS; numbers and dates; the header's
+tooltips; How to play, which keeps every rule and speaks the player's
+device ("tap" on a touch screen, "click" with a mouse); the Credits, with
+the word list's credit word for word; and the share text. A label too
+long for its button wraps onto two lines in a smaller size rather than
+being cut off.
 
 ## Screens
 
@@ -283,11 +324,13 @@ in a smaller size rather than being cut off.
   on a computer, the Calm motion switch, and buttons to Credits and to
   Play. A Credits button also sits in its title bar beside the ×, so the
   Credits are two taps from the header without scrolling; on the narrowest
-  phones the title steps down a size to make room for it.
-- **Credits**, a scrolling sheet over How to play. It opens with the word
-  list: its credit word for word ("Word list based on SCOWL by Kevin
+  phones the title steps down a size to make room for it. The sheet ends
+  with "Play" alone.
+- **Credits**, a scrolling sheet over How to play. It opens with the game's
+  own credit (a remake of a daily word puzzle, by Kerrick Long, under the
+  GNU AGPL 3.0 or later), then the word list: its credit word for word ("Word list based on SCOWL by Kevin
   Atkinson and the sources it credits, …"), then the full
-  `wordlist-COPYRIGHT.txt`; then Cross ’em itself, Lota and LÖVE, and both
+  `wordlist-COPYRIGHT.txt`; then Lota and LÖVE, and both
   fonts' licenses, each
   read from the files that ship with the game. The license texts are shown
   with every word as written, their hard-wrapped paragraphs reflowed to the
@@ -297,11 +340,14 @@ in a smaller size rather than being cut off.
 - **Past puzzles**, a sheet from the calendar in the header or the results'
   "Past puzzles": every puzzle from today back to No. 0, newest first, under
   a heading for each month that stays pinned while its days scroll. Each
-  day shows its number and date and how the player did, in a word and a
-  glyph, never by color alone: "Solved" (a filled disc with a tick, "All 12
-  crossed"), "Game over" (a ring with a cross, "7 of 12 crossed"), "In
-  progress" (a half-filled ring, "5 letters placed"), "Not played" (a faint
-  ring with a dash). Only the rows in view are drawn (`ArchiveList`).
+  day shows its number and date and how the player did, as a glyph whose
+  shape says it, never by color alone, and a count out of twelve: solved
+  (a filled disc with a tick, "12/12"), game over (a ring with a cross and
+  the good letters, "7/12"), in progress (a half-filled ring and the
+  letters placed, "5/12"), not played (a faint dashed ring, no count). The
+  counts line up in a column, so the glyphs do too. Only the rows in view
+  are drawn (`ArchiveList`), and the month heading pinned at the top
+  covers, and takes the taps of, the day under it.
 - **Results** replace the controls when the game is over: the heading, the
   four statistics (played, win %, streak, best streak), the countdown to the
   next puzzle (09:00 UTC, for everyone at once), "Copy result", and, once the countdown reaches zero,
@@ -317,9 +363,11 @@ slower. Players think in words, so a keyboard now takes a whole word
 (Saffer: the trigger should match the player's intent, not the system's
 steps).
 
-- **Drafting.** Letters build a draft, shown where the status line was as
-  ghost tiles with a blinking caret (still in Calm motion), with the pool
-  letters it would use marked by a bar. Backspace edits it; Esc clears it.
+- **Drafting.** Letters build a draft, shown in the strip as ghost tiles
+  with a blinking caret (still in Calm motion), with the pool letters it
+  would use marked by a bar. A letter that can't be had is hatched as it
+  is typed, and a word whose letters can all be had is outlined in the
+  accent (Words, above). Backspace edits it; Esc clears it.
   At most twelve letters, since no word can use more. Typing puts down a
   letter picked up with a tap, so only one thing is ever in hand.
 - **Fitting is geometry only.** The rules give no feedback while letters
@@ -337,14 +385,17 @@ steps).
   first cell, across before down, so the numbers are the same each time.
 - **Choosing.** One place, and the word goes there at once. Several, and
   the board shows them numbered, the current one with its new letters as
-  ghost tiles in the accent's outline, the rest outlined faintly; the
-  camera frames it. Tab and the arrows cycle, 1–9 place at once, Enter or
-  Space places the one shown, Esc goes back to the draft. Past nine (a
-  word with nothing to cross can lie beside a board in two dozen places)
-  only the one shown is drawn, since nine outlines already tangle and
-  digits can't reach the rest; Tab still can. None, and the reason is
-  given and the draft kept to edit (Juul: a failure the player can see the
-  cause of feels fair).
+  ghost tiles in the accent's outline, each other only as the cells it
+  would fill, faintly; the camera frames it. Under the draft, "1/3" and the
+  keycaps Tab, ⏎ and Esc. Tab and the arrows cycle, 1–9 place at once, a
+  click or tap on a place puts it there, Enter or Space places the one
+  shown, Esc goes back to the draft. Past nine (a word with nothing to
+  cross can lie beside a board in two dozen places) only the one shown is
+  drawn, since nine outlines already tangle and digits can't reach the
+  rest; Tab still can. A tap on the pool or the board, Shuffle or Reset
+  lets go of the places, which were worked out for a board that is gone,
+  and keeps the draft. None, and the draft shakes and is kept to edit
+  (Juul: a failure the player can see the cause of feels fair).
 - **Through the rules.** Each new letter goes through `Game#place_letter`,
   a tap on its slot and then its square in one step, from the first slot
   holding that letter, so saving, events, the check when all twelve are
@@ -353,7 +404,9 @@ steps).
   word's own letters (never the ones it crossed), then the word before;
   with no typed word left, the letter placed last, as before.
 - **Keys that meant something else.** Space still shuffles, but only with
-  nothing typed and nothing being chosen; Enter still opens the next
+  nothing typed and nothing being chosen, and, as the Shuffle button,
+  which fades once the pool is empty as Reset does on an empty board,
+  only with letters to shuffle; Enter still opens the next
   puzzle, but only with nothing typed. Letters no longer pick up tiles.
 
 Touch and mouse play are unchanged.
@@ -372,19 +425,21 @@ nothing).
   it, and it is never saved). Moving between them never touches the
   official game.
 - **Labelled for as long as it is shown.** A practice game or a look back
-  carries a tag by its number in the header. Its results show no
-  statistics but a line saying what it is ("A practice game. It isn't saved
-  or counted."), and "Back to today" takes the place of "Copy result", so a
+  wears a chip by its number in the header (on the narrowest phones the
+  wordmark, then the ×, give way; the chip's word never does). Its
+  results show the chip instead of statistics (a look back's with the
+  day's date), and "Back to today" takes the place of "Copy result", so a
   practice result is never shared as a real one (Ctrl/Cmd+C does nothing
-  there either).
+  there either). While the day's game is unfinished past its day, the
+  clock, which would sit at 00:00:00 with nothing after it, is left out.
 - **No "see the solution".** A day has no single solution; "your board" is
   the one the player finished. Opening a day from Past puzzles shows that
-  board read-only with "Play it again"; a day never finished opens straight
+  board, to look at, with "Play again"; a day never finished opens straight
   into practice, and never gets a record; today goes back to the official
   game (or opens today's, if the official game is an unfinished earlier
   day).
-- **Getting back.** The results of practice and of a look back offer "Back
-  to today"; during a practice game, Past puzzles' top row (today) does.
+- **Getting back.** A tap on the chip; the results of practice and of a
+  look back offer "Back to today"; Past puzzles' top row (today) does too.
 - **The keyboard in the list.** Arrows move a ring from day to day (the
   first press lands on the top day in view), Page Up/Down a page, Home and
   End the newest and oldest; Enter opens the day. The list scrolls to keep
