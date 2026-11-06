@@ -18,7 +18,7 @@ module CrossEm
         ink: hex["#1F1A14"], ink_muted: hex["#6B6256"], card: hex["#FAF6EE"], scrim: hex["#1F1A14", 0.42],
         shadow: hex["#3A2A12", 0.16],
         tile_face: hex["#FBF4E3"], tile_edge: hex["#D3BF97"], tile_letter: hex["#1F1A14"],
-        unused_face: hex["#FBF4E3", 0.5], target: hex["#1F7A8C"], problem: hex["#C8432B"],
+        unused_face: hex["#FBF4E3", 0.5], target: hex["#1F7A8C"], problem: hex["#B23A24"],
         finished_face: hex["#24427F"], finished_edge: hex["#172C57"], finished_letter: hex["#FBF4E3"],
         won: hex["#2E7D4F"], glow: hex["#FFFFFF", 0.6],
         confetti: [hex["#2E7D4F"], hex["#3B6FD4"], hex["#E2A93B"], hex["#1F7A8C"], hex["#C8432B"]].freeze
