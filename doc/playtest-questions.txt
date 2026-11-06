@@ -1,15 +1,15 @@
 # Cross ’em playtest questions: one per line, "question | answer type".
 Which device did you play on (model and iOS version)? | text
-Did the game fill the screen, with nothing hidden under the notch, rounded corners or home indicator? | yes/no + text
-Did each tap do exactly one thing (never two, never nothing)? | yes/no + text
-Were the pool letters and buttons comfortable to tap with a finger? | yes/no
+Did the game fill the screen, upright and sideways, with nothing hidden under the notch, corners or home indicator? | yes/no + text
+Did each tap do exactly one thing, and were the letters and buttons comfortable to tap? | yes/no + text
 Could you tell at a glance which letter was picked up, and where it could go? | yes/no + text
-When every letter was on the board with mistakes, was it clear which letters were the problem and why? | yes/no + text
-Did you win or give up? How many letters did you cross? | text
+When did you expect the game to tell you a word was wrong? | text
+When every letter was down with mistakes, was it clear which letters were the problem and why? | yes/no + text
+What did you think Reset would do? | text
+What did the numbers on the results mean to you? | text
 Did "Copy result" paste correctly into Messages or Notes? Paste it here. | text
 Did you hear the sounds, and did the silent switch mute them? | yes/no + text
-Did turning the phone sideways (or Split View on iPad) keep everything usable? | yes/no + text
 After closing and reopening the app, was your board exactly as you left it? | yes/no
-Was any text or line blurry or soft-looking? | yes/no + text
-Did anything feel slow, stutter, or freeze? | yes/no + text
+Was anything blurry, slow or stuttering? | yes/no + text
+Was it fun? Would you play tomorrow? | text
 What did you enjoy most, and what annoyed you most? | text

@@ -21,7 +21,7 @@ as you can. When the game is over, "Copy result" puts your result on the
 clipboard, ready to paste.
 
 The calendar in the header (or "Past puzzles" after a game) lists every
-puzzle back to No. 1 with how you did. Open a finished day to see your board,
+puzzle back to No. 0 with how you did. Open a finished day to see your board,
 and play any day again for fun. Practice games are marked as practice, are
 never saved, and never change your statistics; the first play of each day is
 the one that counts.
@@ -30,7 +30,9 @@ the one that counts.
 
 Type a whole word and press Enter (or Space). The game puts its letters where
 the word fits, using letters already on the board where they match. If it fits
-more than one place, the places are numbered on the board.
+more than one place, the places are numbered on the board; click one, or
+press its number, to put the word there. As you type, a letter you don't have
+(in the pool, or on the board to cross) is hatched at once.
 
 | Key | What it does |
 | --- | --- |
