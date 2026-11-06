@@ -19,7 +19,12 @@
 #                     goes on from the results (the next puzzle when it
 #                     is ready, or back to today)
 #   Tab, arrows       when it fits several places, show the next (Shift+Tab,
-#                     Up and Left the one before)
+#                     Up and Left the one before); with nothing typed,
+#                     the arrows move a focus ring by direction and Tab
+#                     jumps between the header, the board, the pool and
+#                     the buttons (Shift+Tab back)
+#   Enter, Space      once the ring shows, with nothing typed: what a
+#                     click on the ringed thing would do
 #   1-9               place it in that numbered place
 #   Backspace         the last letter typed; with nothing typed, takes
 #                     back the last word placed (then the one before)
@@ -38,7 +43,25 @@
 #   F11               fullscreen
 #
 # In Past puzzles, Up and Down walk the days, Page Up, Page Down, Home and
-# End go further, and Enter opens the day.
+# End go further, and Enter opens the day. In the other sheets the arrows
+# reach their buttons, scrolling to them.
+#
+# On a game controller (any SDL knows as a gamepad; plug it in any time):
+#
+#   D-pad             moves the focus ring by direction
+#   Left stick        a cursor that settles on the nearest thing
+#   A                 what a tap on the ringed thing would do
+#   B                 back: puts a letter down, closes a sheet
+#   X                 Shuffle (Play again once the game is over)
+#   Y                 Give up, pressed twice (Copy result once it's over)
+#   Back (View)       Reset
+#   Start (Menu)      How to play
+#   LB, RB            the region before or after; a page in a sheet
+#   Right stick       pans the board, or scrolls a sheet
+#
+# The ring shows once the arrows or a controller are used, and hides at
+# a tap or a click; buttons show a controller's glyphs while it is the
+# last thing used.
 #
 # Development settings, read from the environment:
 #
@@ -65,7 +88,8 @@
 #                               device, as on a computer without one.
 #   CROSS_EM_SCRIPT=pick:K,tap:0:0,wait:1,giveup
 #                               plays these steps by itself at startup; see
-#                               CrossEm::Presentation::Script for them all.
+#                               CrossEm::Presentation::Script for them all,
+#                               a controller's too (pad:a, stick:0.8:0:0.5).
 
 require_relative "lib/cross_em/shell"
 

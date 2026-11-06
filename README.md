@@ -60,6 +60,30 @@ theirs in a tooltip.
 In Past puzzles, Up and Down move from day to day, Page Up, Page Down, Home and
 End move further, and Enter opens the day.
 
+With nothing typed, the arrow keys also move a ring around the screen, from
+letter to square to button, and Tab jumps between the header, the board, the
+pool and the buttons. Once the ring shows, Enter or Space does what a click on
+the ringed thing would. It hides again at the next click.
+
+### On a game controller
+
+Plug in a controller at any time (anything your computer knows as a gamepad:
+Xbox, PlayStation, Switch Pro and most others). A ring shows what A will act
+on, and the buttons show your controller's own glyphs.
+
+| Button | What it does |
+| --- | --- |
+| D-pad | Move the ring: to a letter, a square on the grid, or a button |
+| Left stick | Point with a small cursor; let go and it settles on the nearest thing |
+| A | Pick up or place a letter, send one back, press a button, open a day |
+| B | Put a letter down, close a sheet, go back from choosing a place |
+| X | Shuffle (once the game is over, Play again) |
+| Y | Give up, pressed twice (once the game is over, Copy result) |
+| Back / View | Reset |
+| Start / Menu | How to play |
+| LB, RB | Jump between the header, the board, the pool and the buttons; in a sheet, a page up or down |
+| Right stick | Move the board, or scroll a sheet |
+
 ## Getting the game
 
 Players without Ruby can download a built app for Linux, Windows or macOS from
@@ -103,7 +127,8 @@ the original's test vectors), the pool and grid, word checking, winning and
 giving up, saving and restoring, statistics, the exact share text, where a
 typed word fits, and that practice games are never saved. They
 also cover the pure-Ruby parts of the presentation, such as the layout, the
-board's fit and panning, input routing, the words on screen, and the sounds.
+board's fit and panning, input routing, moving the focus by direction and the
+stick's cursor, the words on screen, and the sounds.
 
 ## Developer tools
 
@@ -119,7 +144,9 @@ CROSS_EM_SCRIPT=close,word:MITER:0:0:across,word:WALKER:3:-4:down,word:JAK:2:-3:
 ```
 
 Scripts can also type, as a player at a keyboard would
-(`type:MITER,key:return,key:tab`), and visit the archive
+(`type:MITER,key:return,key:tab`), press a controller's buttons and tilt its
+sticks (`pad:dpright,pad:a,pad:lb,stick:0.8:0:0.5,rstick:0:1:0.5`, the last
+number the seconds to hold it), and visit the archive
 (`archive`, `day:1700`, `again`, `today`).
 
 `ruby script/solve.rb 2026-11-05` finds boards that win a day's puzzle, and

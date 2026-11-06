@@ -426,6 +426,104 @@ steps).
 
 Touch and mouse play are unchanged.
 
+## A controller, and one focus (`Spatial`, `FocusRing`, `FocusMap`, `StickCursor`, `PadMap`)
+
+A game controller plays the whole game, and the keyboard's arrows share
+what it moves: one focus, the single thing A (or Enter) would act on.
+`PadMap` turns a button into the same named actions `KeyMap` names, so
+`Play#act` carries them out through the click's path, and a button acts
+only when it is live.
+
+- **One focus, shown only when it is being used.** A ring marks it. It
+  appears once the arrows or a controller are used and hides at the next
+  tap or click, which also moves the focus to what was tapped, so the
+  arrows go on from there (Saffer: no mode to manage). The first press
+  after a tap only shows where the ring is, and moves nothing: a move
+  from a place the player can't see would be a guess (Lee: predictable
+  control). In a sheet the first press acts, as the arrows always have
+  there. The ring is ink, standing 3 pt off what it marks with a hairline
+  of the page inside it, so it never reads as a picked-up tile's own ring;
+  round on the header's icons and a sheet's ×.
+- **What can be focused** is what a tap would do something to: pool
+  letters (empty sockets are passed over, as faded buttons are), the
+  board's letters, its glowing squares while a letter is in hand (and an
+  empty board's one square), live buttons, the header's icons (the
+  chip, in practice), a sheet's ×, its title-bar button and its controls,
+  and Past puzzles' days. After the game, the board and the pool are only
+  to look at; the right stick still pans the board.
+- **Moving by direction** (d-pad, arrows) works on the laid-out
+  rectangles, so it follows every layout, orientation and scale
+  (`Spatial`): of the targets whose middle lies past the focus's edge that
+  way, the least gap along plus three times the gap across. In line comes
+  first: a move never turns a corner while something lies straight ahead.
+  Leaving a region, the nearest region that way is chosen by its bounds
+  (the board's are its whole room) before any target in it, so a move
+  never jumps over a region: up from the pool's corner, when the board's
+  few letters are off to one side, lands on the board, not on the header
+  above it (Johnson: the eye groups by region first). Only then, round a
+  corner within the region. A move onto a board cell out of sight pans
+  the camera to it. A test walks every target by the d-pad alone on a
+  phone, on its side, a desktop, an upright iPad and a small phone, in
+  play, with a letter in hand, on the results and in practice: none is a
+  dead end, and all can be reached.
+- **Pinned.** On the results with the clock still running, the clock is
+  not a button, so nothing is straight above "Play again" but the header
+  far off past the board; up goes to the share button instead, the
+  results' own (`FocusMap.pins`). Past puzzles is a list, not a grid: Up
+  and Down walk the days as before, and up from today reaches the ×.
+  Elsewhere the rules above agreed with the screen, so nothing else is
+  pinned.
+- **Regions:** the header, the board, the pool, and the controls or the
+  results; a sheet is a region of its own and the only one while open.
+  LB and RB (Tab and Shift+Tab with nothing typed) jump between them in
+  that order, wrapping, and each remembers its last focus; the first jump
+  to the board with a letter in hand lands on its first glowing square.
+  In a sheet, Tab steps through its controls and LB and RB page.
+- **The focus is held by what it is, not where.** A slot, a cell, a
+  button by name, so a rotation or a resize finds it again. When it goes
+  (a letter placed from the pool, Reset fading), the nearest target left
+  in its region takes over; when a sheet closes, the focus is where it
+  was before.
+- **The left stick** is a cursor with gravity, for where moving by
+  direction guesses wrong. Past a 20% dead zone (a resting stick drifts),
+  its speed grows with the square of the tilt, up to 1,100 pt a second;
+  over a target it moves at 45% (friction), so it is easy to stop on one.
+  The target under it is the focus as it moves, so it and the d-pad drive
+  the same thing at any moment; let go, it glides onto the nearest target
+  in 120 ms and fades. It is a small reticle, an ink ring and dot on whole
+  pixels with a halo of the page, shown only while it moves (Swink: a
+  response curve, and a cursor that reads at a glance). The d-pad carries
+  it along with the focus, out of sight.
+- **The right stick** pans the board, as a drag does and kept to the same
+  bounds, or scrolls a sheet.
+- **Buttons.** A acts on the focus: picks up or places a letter (it
+  places a typed word, too), sends one back, presses a button, opens a
+  day. B is Esc: puts a letter down, goes back from choosing a place,
+  closes a sheet. X shuffles and Y gives up (twice, as the button asks);
+  once the game is over, X plays again and Y copies the result, the two
+  things left to do there. Back resets (the View button; Select on older
+  pads), and Start opens How to play. While a typed word's places are
+  shown the d-pad shows the next, as Tab does.
+- **Hints.** While a controller is the last thing used, buttons show its
+  glyphs where they showed keycaps, in the keycap's style: face buttons
+  round, bumpers and Back and Start as pills. SDL names buttons by where
+  they sit on an Xbox controller, so the glyphs follow the controller's
+  family: letters for Xbox, shapes for PlayStation, and a Nintendo
+  controller's own letters, which are swapped (its bottom button is B).
+  A key brings the keycaps back; on a touch screen a tap brings nothing.
+  The ringed header icon shows its tooltip, so icons are named for a
+  controller too. How to play explains the controller while one is
+  connected.
+- **The keyboard shares the ring.** With nothing typed and no place
+  being chosen, the arrows move it and Tab jumps regions. Enter and Space
+  act on it only once it shows; until then Space shuffles and Enter goes
+  on from the results as before. Typing a letter hides it, so a player
+  who types words keeps every key as it was.
+- **Hot-plug.** Controllers are kept as `joystickadded` and
+  `joystickremoved` say, never listed each frame (that once crashed a
+  Lota build on iOS); a joystick SDL doesn't know as a gamepad, such as
+  iOS's accelerometer, is ignored.
+
 ## Playing again and the archive (`Presentation::ArchiveList`, `Session#practice`)
 
 The first play of each day is the record; everything else is for fun and
@@ -455,10 +553,11 @@ nothing).
   day).
 - **Getting back.** A tap on the chip; the results of practice and of a
   look back offer "Back to today"; Past puzzles' top row (today) does too.
-- **The keyboard in the list.** Arrows move a ring from day to day (the
-  first press lands on the top day in view), Page Up/Down a page, Home and
-  End the newest and oldest; Enter opens the day. The list scrolls to keep
-  the ring clear of the pinned month heading.
+- **The keyboard in the list.** Arrows move the focus ring from day to
+  day (the first press lands on the top day in view), Page Up/Down a page,
+  Home and End the newest and oldest; Enter opens the day. Up from today
+  reaches the ×. The list scrolls to keep the ring clear of the pinned
+  month heading.
 
 ## The icon (`script/make_icon.rb`, CC0)
 
