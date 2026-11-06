@@ -84,8 +84,9 @@ module CrossEm
 
       # How to play, as Sheet blocks: every rule, then the settings, in
       # the verbs of the player's device (tap on a touch screen, click
-      # with a mouse). The Credits are a button in the title bar.
-      def instructions(touch:)
+      # with a mouse), and, with a controller connected (+pad+), its
+      # buttons. The Credits are a button in the title bar.
+      def instructions(touch:, pad: false)
         tap = touch ? "Tap" : "Click"
         [
           Block.body("Make connected words, crossword style, from the day's twelve letters. " \
@@ -104,6 +105,10 @@ module CrossEm
           (Block.bullet("On a keyboard, type a word and press Enter to place it. A hatched letter is one you " \
                         "don't have. If the word fits more than one place, Tab shows each. Backspace takes back " \
                         "the last word. Every button shows its keys.") unless touch),
+          (Block.bullet("On a controller, the d-pad or the left stick moves to a letter, a square or a button, " \
+                        "and A picks up, places or presses it. B puts a letter down or goes back. X shuffles, " \
+                        "Y gives up, LB and RB jump between the board, the pool and the buttons, and the right " \
+                        "stick moves the board.") if pad),
           Block.space,
           Block.toggle(:calm, "Calm motion", "Gentle fades instead of flights and bounces."),
           Block.space,

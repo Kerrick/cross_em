@@ -15,6 +15,19 @@ module CrossEm
 
       attr_reader :game, :official, :mode, :settings, :time, :units, :motion, :typing
 
+      # The one focus a keyboard's arrows and a controller move (FocusRing),
+      # and the left stick's cursor (StickCursor).
+      attr_reader :ring, :cursor
+
+      # The family of the controller last used, for its glyphs: :xbox,
+      # :playstation or :nintendo (PadMap.family).
+      attr_reader :pad_family
+
+      # The left stick's fastest, and the right stick's, in points a
+      # second at full tilt.
+      CURSOR_SPEED = 1100
+      LOOK_SPEED = 900
+
       # +host+ answers sound(name), copy(text) (true if it worked),
       # settings_changed(settings), next_day, dark?, system_theme (:light,
       # :dark or :unknown), read(path) and listen(game) (to sound a game
@@ -34,6 +47,13 @@ module CrossEm
         @sheet_layouts = {}
         @typing = Typing.new(self)
         @good = {}
+        @ring = FocusRing.new
+        @cursor = StickCursor.new(speed: CURSOR_SPEED)
+        @sticks = {left: [0.0, 0.0], right: [0.0, 0.0]}
+        @scroll_rest = 0.0
+        @input = nil
+        @pads = []
+        @pad_family = :xbox
         self.official = game
       end
 
@@ -68,11 +88,13 @@ module CrossEm
         @sheet_layouts.clear
         @sheets.map! { it.with(scroll: 0) }
         @view = nil
+        @cursor.speed = units.px(CURSOR_SPEED)
       end
 
       def update(seconds)
         @time += seconds
         @motion.update(@time)
+        steer(seconds)
       end
 
       # --- What the painters read ---
@@ -116,19 +138,34 @@ module CrossEm
       # A tooltip for the button the mouse has rested on, on a computer:
       # [text, keycaps, the button's rect]. A header button's names what
       # it does, since it is an icon; every button's shows its keys.
+      #
+      # While the focus ring is shown on one of the header's icons, the
+      # tooltip is that icon's, so a player at a controller can tell
+      # them apart too.
       def tooltip
-        return if @touch || sheet? || gesture
+        return if sheet? || gesture
 
-        resting = @pointers.resting(@time, Look::TIMING.tooltip) or return
-        name, rect = resting
-        text = case name
-               when :theme then Copy::TIPS[@host.dark? ? :light : :dark]
-               when :sound then Copy::TIPS[@settings.muted ? :unmute : :mute]
-               when :archive, :help then Copy::TIPS[name] if layout.header_buttons.any? { it.last == rect }
-               when :today then Copy::TIPS[:today] if rect == layout.wordmark
-               end
+        if @ring.visible? && (target = focused)&.region == :header
+          name, rect = target.id.last, target.rect
+        else
+          return if @touch
+
+          resting = @pointers.resting(@time, Look::TIMING.tooltip) or return
+          name, rect = resting
+        end
+        text = tip(name, rect)
         keys = keycaps(name)
         [text, keys, rect] if text || keys
+      end
+
+      # What a header button does, as its tooltip names it.
+      def tip(name, rect)
+        case name
+        when :theme then Copy::TIPS[@host.dark? ? :light : :dark]
+        when :sound then Copy::TIPS[@settings.muted ? :unmute : :mute]
+        when :archive, :help then Copy::TIPS[name] if layout.header_buttons.any? { it.last == rect }
+        when :today then Copy::TIPS[:today] if rect == layout.wordmark
+        end
       end
 
       # How long after the event being told now its animation and sound
@@ -205,9 +242,18 @@ module CrossEm
 
       # --- Pointers (PointerMap) and keys (KeyMap) ---
 
-      def pointer(event) = @pointers.pointer(event)
+      def pointer(event)
+        pointed(event) if event.phase == :pressed
+        @pointers.pointer(event)
+      end
+
       def hover(x, y) = @pointers.hover(x, y, @time)
-      def press(pointer) = @pointers.press(pointer)
+
+      def press(pointer)
+        pointed(pointer)
+        @pointers.press(pointer)
+      end
+
       def move(pointer) = @pointers.move(pointer)
       def release(pointer) = @pointers.release(pointer)
       def wheel(dx, dy) = @pointers.wheel(dx, dy)
@@ -216,8 +262,53 @@ module CrossEm
       # What the mouse pointer should look like over (+x+, +y+).
       def cursor_at(x, y) = @pointers.cursor_at(x, y)
 
-      def text(text) = KeyMap.text(self, text)
-      def key(key, command: false, shift: false) = KeyMap.key(self, key, command:, shift:)
+      def text(text)
+        @input = :keys
+        KeyMap.text(self, text)
+      end
+
+      def key(key, command: false, shift: false)
+        @input = :keys
+        KeyMap.key(self, key, command:, shift:)
+      end
+
+      # A controller's +button+ (PadMap), from a controller of +family+.
+      # Any use of a controller shows the focus ring.
+      def pad(button, family: nil)
+        @input = :pad
+        @pad_family = family if family
+        PadMap.press(self, button)
+        @ring.show
+      end
+
+      # A controller's stick, :left or :right, tilted to (+x+, +y+), each
+      # from -1 to 1. #update moves the cursor or the board by it.
+      def stick(side, x, y)
+        @sticks[side] = [x.to_f, y.to_f]
+      end
+
+      # The families of the controllers connected now (PadMap.family). How
+      # to play tells a player with one how to use it.
+      def pads=(families)
+        return if families == @pads
+
+        @pads = families
+        @sheet_layouts.delete(:help)
+      end
+
+      def pads? = !@pads.empty?
+
+      # What the player last played with: :pad, :keys, :pointer, or nil.
+      attr_reader :input
+
+      # Which hints the buttons show: a controller's glyphs while one was
+      # the last thing used, else keycaps at a computer, and none on a
+      # touch screen.
+      def hints
+        return :pad if @input == :pad
+
+        @touch ? nil : :keys
+      end
 
       # Carries out a named action, whichever input asked for it: a key
       # (KeyMap), or anything else that names actions. The buttons'
@@ -225,7 +316,9 @@ module CrossEm
       # click does, only when the button would be live.
       def act(action, arg = nil)
         case action
-        when :type then typing.type(arg)
+        when :type
+          @ring.hide
+          typing.type(arg)
         when :choose then typing.choose(arg)
         when :cycle then typing.cycle(arg)
         when :enter then enter
@@ -238,6 +331,10 @@ module CrossEm
         when :scroll then KeyMap.scroll(self, arg)
         when :focus then KeyMap.focus(self, arg)
         when :open_day then open_focus
+        when :move then navigate(arg)
+        when :hop then hop(arg)
+        when :activate then activate
+        when :page then page(arg)
         else press_button(action) if button?(action)
         end
       end
@@ -257,10 +354,79 @@ module CrossEm
 
       # The keys for +name+'s action, as keycaps to show by its button
       # (KeyMap::KEYCAPS), on a computer; nil on a touch screen.
+      #
+      # While a controller is in use, its glyphs instead (PadMap).
       def keycaps(name)
-        return if @touch
+        case hints
+        when :pad then PadMap.glyphs(name, @pad_family)
+        when :keys then KeyMap::KEYCAPS[name]&.map { it == :command ? @command_key : it }
+        end
+      end
 
-        KeyMap::KEYCAPS[name]&.map { it == :command ? @command_key : it }
+      # --- The focus (FocusMap) ---
+
+      # The focused Target, found again on the screen as it is now.
+      def focused = @ring.current(FocusMap.targets(self), default: FocusMap.default(self))
+
+      def focus_visible? = @ring.visible?
+
+      # Where to draw the focus ring, while it is shown: [rect, shape,
+      # clip], the shape :tile, :button, :icon or :row, and +clip+ the
+      # rect to draw it inside, or nil. A board cell's ring moves with the
+      # camera as it eases.
+      def focus_mark
+        return unless @ring.visible?
+
+        target = focused or return
+        case target.id
+        in [:cell, position] then [shown_view.tile_rect(position), :tile, shown_view.viewport]
+        in [:slot, _] then [target.rect, :tile, nil]
+        in [:day, _] then [target.rect, :row, archive_clip]
+        in [:control, _] if FocusMap.body?(self, target)
+          [target.rect, :button, sheet_layout.body]
+        in [:button, :today] | [:control, _] then [target.rect, :button, nil]
+        else [target.rect, target.region == :header ? :icon : :button, nil]
+        end
+      end
+
+      # Moves the focus by +direction+ (:up, :down, :left or :right). The
+      # first press after a tap or a click only shows where it is.
+      def navigate(direction)
+        shown = @ring.visible?
+        @ring.show
+        follow(shown || sheet? ? FocusMap.move(self, @ring, direction) : focused)
+      end
+
+      # Jumps +by+ regions (Tab, LB and RB); in a sheet, +by+ controls.
+      def hop(by)
+        shown = @ring.visible?
+        @ring.show
+        follow(shown ? FocusMap.hop(self, @ring, by) : focused)
+      end
+
+      # A or Enter: does what a tap on the focus would. The first press
+      # after a tap or a click only shows where the focus is.
+      def activate
+        return @ring.show unless @ring.visible?
+
+        target = focused or return
+        FocusMap.activate(self, target)
+      end
+
+      # A page up (+by+ -1) or down in a sheet: LB and RB.
+      def page(by)
+        key = by.negative? ? :pageup : :pagedown
+        sheet&.kind == :archive ? KeyMap.focus(self, key) : KeyMap.scroll(self, key)
+      end
+
+      # A tap on a sheet's control, or A or Enter on it.
+      def sheet_control(id)
+        case id
+        in [:day, number] then open_day(number)
+        in :close then close_sheet
+        in :credits then open(:credits)
+        else toggle(id)
+        end
       end
 
       # --- Actions, by name, as the buttons and a Script call them ---
@@ -377,6 +543,8 @@ module CrossEm
                 end
               end
         @sheets[-1] = sheet.with(focus: row.number, scroll: layout.reveal(row, sheet.scroll))
+        @ring.show
+        FocusMap.day_focus(self, @ring)
       end
 
       # A page of days in Past puzzles, for Page Up and Page Down.
@@ -486,6 +654,72 @@ module CrossEm
 
       private
 
+      # A tap or a click: the focus ring hides until the keyboard's arrows
+      # or a controller are used again, and the focus moves to what was
+      # pressed, if anything, so they go on from there.
+      def pointed(pointer)
+        @input = :pointer
+        @ring.hide
+        pressed = FocusMap.pointable(self).find { it.rect.contains?(pointer.x, pointer.y) }
+        @ring.focus(pressed) if pressed
+      end
+
+      # After the focus moved by direction or by region: the camera pans
+      # to a board cell out of sight, and the stick's cursor goes on from
+      # the focus.
+      def follow(target)
+        return unless target
+
+        if target.id.first == :cell
+          position = target.id.last
+          refit(focus: position) unless view.reveal(position) == view
+          target = focused || target
+        end
+        @cursor.place(target.rect.center_x, target.rect.center_y)
+        target
+      end
+
+      # The sticks, each frame: the left one moves the cursor, which moves
+      # the focus; the right one pans the board or scrolls a sheet.
+      def steer(seconds)
+        look(seconds)
+        lx, ly = @sticks[:left]
+        tilted = StickCursor.shaped(lx, ly) != [0.0, 0.0]
+        return unless tilted || @cursor.moving? || @cursor.visible?
+
+        if tilted && !@cursor.moving? && !@cursor.visible?
+          start = focused
+          @cursor.place(start.rect.center_x, start.rect.center_y) if start
+        end
+        if tilted
+          @input = :pad
+          @ring.show
+        end
+        bounds = Rect.new(x: 0, y: 0, width: @width, height: @height)
+        event = @cursor.update(seconds, lx, ly, FocusMap.pointable(self), bounds)
+        @ring.focus(event.last) if event
+      end
+
+      def look(seconds)
+        x, y = StickCursor.shaped(*@sticks[:right])
+        return if x.zero? && y.zero?
+
+        @input = :pad
+        speed = units.px(LOOK_SPEED) * Math.hypot(x, y) * seconds
+        return pan(-x * speed, -y * speed) unless sheet?
+
+        @scroll_rest += y * speed
+        whole = @scroll_rest.truncate
+        @scroll_rest -= whole
+        scroll_sheet(whole) unless whole.zero?
+      end
+
+      def archive_clip
+        layout = sheet_layout
+        top = layout.pinned(sheet.scroll)&.last&.bottom || layout.body.y
+        layout.body.with(y: top, height: layout.body.bottom - top)
+      end
+
       def layout_for(pool:)
         over = game.over?
         @layouts[[over, pool]] ||= Layout.for(width: @width, height: @height, safe: @safe, units:, over:, pool:)
@@ -493,7 +727,7 @@ module CrossEm
 
       def safe_rect = @safe || Rect.new(x: 0, y: 0, width: @width, height: @height)
 
-      def blocks(kind) = kind == :help ? Copy.instructions(touch: @touch) : Copy.credits(@host.method(:read))
+      def blocks(kind) = kind == :help ? Copy.instructions(touch: @touch, pad: pads?) : Copy.credits(@host.method(:read))
 
       def settle(settings)
         @settings = settings

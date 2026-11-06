@@ -161,20 +161,11 @@ module CrossEm
         in [:board] then @play.tap_cell(@play.shown_view.cell_at(gesture.start_x, gesture.start_y))
         in [:button, name] then @play.press_button(name) if target_at(gesture.x, gesture.y) == gesture.target
         in [:sheet, :close | :scrim] then @play.close_sheet
-        in [:sheet, :link] then sheet_control(@play.sheet_layout.link.id)
+        in [:sheet, :link] then @play.sheet_control(@play.sheet_layout.link.id)
         in [:sheet, :body]
           control = @play.sheet_layout.control_at(gesture.x, gesture.y, @play.sheet.scroll)
-          sheet_control(control.id) if control
+          @play.sheet_control(control.id) if control
         else nil
-        end
-      end
-
-      def sheet_control(id)
-        case id
-        in [:day, number] then @play.open_day(number)
-        in :close then @play.close_sheet
-        in :credits then @play.open(:credits)
-        else @play.toggle(id)
         end
       end
     end
