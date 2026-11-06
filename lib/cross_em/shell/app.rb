@@ -264,11 +264,13 @@ module CrossEm
         @quit_after = Float(@env.fetch("CROSS_EM_QUIT_AFTER", ""), exception: false)
         @script = Presentation::Script.parse(@env["CROSS_EM_SCRIPT"])
         @script_clock = 0.0
+        @holds = {}
       end
 
       def development(seconds)
         before = @elapsed
         @elapsed += seconds
+        release_sticks
         unless @script.empty?
           steps, @script, @script_clock = @script.due(@elapsed, @script_clock)
           steps.each { run(it) }
@@ -305,10 +307,32 @@ module CrossEm
         when :calm then @play.toggle(:calm)
         when :next then @play.press_button(:next)
         when :scroll then scroll(@units.px(Float(args.fetch(0))))
+        when :pad then press_pad(*args)
+        when :stick, :rstick then hold_stick(step.name == :stick ? :left : :right, *args.first(3).map { Float(it) })
         else warn "Cross ’em: no script step #{step.name}"
         end
       rescue StandardError => e
         warn "Cross ’em: script step #{step.name}:#{step.args.join(':')} failed: #{e.message}"
+      end
+
+      # pad:a, pad:lb, pad:x:playstation: a controller's button.
+      def press_pad(button, family = nil)
+        name = button.downcase
+        @play.pad(Presentation::Script::BUTTONS.fetch(name, name).to_sym, family: family&.to_sym)
+      end
+
+      # stick:0.8:0:0.5 tilts the left stick to (0.8, 0) for half a
+      # second (rstick the right one), as a controller's would be.
+      def hold_stick(side, x, y, seconds)
+        @play.stick(side, x, y)
+        @holds[side] = @elapsed + seconds
+      end
+
+      def release_sticks
+        @holds.select { |_, time| @elapsed >= time }.each_key do |side|
+          @play.stick(side, 0.0, 0.0)
+          @holds.delete(side)
+        end
       end
 
       def position(column, row) = Position.new(column: Integer(column), row: Integer(row))

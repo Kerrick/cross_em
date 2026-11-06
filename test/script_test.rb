@@ -28,4 +28,19 @@ class ScriptTest < Minitest::Test
     assert_equal [:giveup], ready.map(&:name)
     assert_predicate left, :empty?
   end
+
+  def test_a_held_stick_holds_back_the_steps_after_it
+    script = Script.parse("pad:dpright,stick:0.8:0:0.5,pad:a")
+    ready, left, clock = script.due(0.1)
+
+    assert_equal %i[pad stick], ready.map(&:name)
+    assert_equal %w[0.8 0 0.5], ready.last.args
+    ready, left, clock = left.due(0.4, clock)
+
+    assert_empty ready, "the stick is still held"
+    ready, left, = left.due(0.7, clock)
+
+    assert_equal [:pad], ready.map(&:name)
+    assert_predicate left, :empty?
+  end
 end

@@ -26,8 +26,23 @@ module CrossEm
     #   copy               copies the result
     #   calm               switches calm motion on or off
     #   wait:1.5           waits that many seconds before the next step
+    #   pad:a              presses a controller's button, by SDL's name:
+    #                      pad:dpright, pad:b, pad:x, pad:y, pad:back,
+    #                      pad:start, pad:leftshoulder (or pad:lb),
+    #                      pad:rightshoulder (pad:rb); a family after it
+    #                      draws that controller's glyphs: pad:a:playstation
+    #   stick:0.8:0:0.5    holds the left stick at (0.8, 0) for that many
+    #                      seconds, then lets go; the steps after it wait
+    #   rstick:0:1:0.5     the same with the right stick
     class Script < Data.define(:steps)
       class Step < Data.define(:name, :args); end
+
+      # Steps that hold a stick for their third argument's seconds, which
+      # the steps after them wait out.
+      HOLDS = %i[stick rstick].freeze
+
+      # Short names for a controller's buttons.
+      BUTTONS = {"lb" => "leftshoulder", "rb" => "rightshoulder"}.freeze
 
       def self.parse(text)
         steps = text.to_s.split(",").map(&:strip).reject(&:empty?).map do |step|
@@ -52,6 +67,8 @@ module CrossEm
             left.shift
           else
             ready << left.shift
+            held = HOLDS.include?(step.name) && Float(step.args[2], exception: false)
+            left.unshift(Step.new(name: :wait, args: [held.to_s])) if held
           end
         end
         [ready, Script.new(steps: left.freeze), clock]
