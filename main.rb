@@ -98,3 +98,8 @@ end
 
 def Lota.keypressed(key) = @app&.key_pressed(key)
 def Lota.textinput(text) = @app&.text_input(text)
+
+def Lota.joystickadded(joystick) = @app&.joystick_added(joystick)
+def Lota.joystickremoved(joystick) = @app&.joystick_removed(joystick)
+def Lota.gamepadpressed(joystick, button) = @app&.gamepad_pressed(joystick, button)
+def Lota.gamepadaxis(joystick, axis, value) = @app&.gamepad_axis(joystick, axis, value)

@@ -14,6 +14,8 @@ module CrossEm
       def initialize(env = ENV)
         @env = env
         @elapsed = 0.0
+        @pads = {}
+        @axes = {}
       end
 
       def load
@@ -86,6 +88,46 @@ module CrossEm
 
       def text_input(text) = @play.text(text)
 
+      # --- Game controllers ---
+      #
+      # Only a joystick SDL knows as a gamepad is a controller: on iOS the
+      # accelerometer can arrive as a joystick too, and is left alone.
+      # The controllers are kept as they come and go, never listed again
+      # each frame (listing them every frame once crashed a Lota build
+      # on iOS); one that sends a button before it was announced is taken
+      # on then.
+
+      def joystick_added(joystick)
+        return unless gamepad?(joystick)
+
+        @pads[joystick] = Presentation::PadMap.family(joystick.gamepad_type)
+        @play.pads = @pads.values
+      rescue StandardError => e
+        warn "Cross ’em: a controller couldn't be used (#{e.message})"
+      end
+
+      def joystick_removed(joystick)
+        return unless @pads.delete(joystick)
+
+        @axes.delete(joystick)
+        @play.pads = @pads.values
+        %i[left right].each { @play.stick(it, 0.0, 0.0) }
+      end
+
+      def gamepad_pressed(joystick, button)
+        family = pad(joystick) or return
+        @play.pad(button, family:)
+      end
+
+      # A stick's axis moved: the stick's whole position goes to Play.
+      def gamepad_axis(joystick, axis, value)
+        pad(joystick) or return
+        side = {leftx: :left, lefty: :left, rightx: :right, righty: :right}[axis] or return
+        axes = (@axes[joystick] ||= Hash.new(0.0))
+        axes[axis] = value.to_f
+        @play.stick(side, axes[:"#{side}x"], axes[:"#{side}y"])
+      end
+
       def theme_changed = @system_theme = read_system_theme
 
       # The window changed size, or moved to a screen of another density:
@@ -136,6 +178,14 @@ module CrossEm
       private
 
       def touch? = TOUCH_SYSTEMS.include?(@os)
+
+      # The family of the controller +joystick+, taking it on if it is a
+      # gamepad not yet announced; nil if it is not a gamepad.
+      def pad(joystick)
+        @pads[joystick] || (joystick_added(joystick) && @pads[joystick])
+      end
+
+      def gamepad?(joystick) = joystick.respond_to?(:gamepad?) && joystick.gamepad?
 
       # Plays the sounds whose time has come, some a little after their
       # event (Presentation::Sounds).
