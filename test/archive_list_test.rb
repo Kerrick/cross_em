@@ -83,4 +83,17 @@ class ArchiveListTest < Minitest::Test
     assert_equal 1720, list.step(1720, -5).number
     assert_equal 0, list.step(3, 10).number
   end
+
+  def test_a_tap_on_the_pinned_month_heading_opens_no_day
+    layout = ArchiveLayout.build(list: list(), safe: rect(0, 0, 390, 844), units: units)
+    body = layout.body
+    scroll = 100 # the heading is pinned; day 1719 (80-130) is under it
+    heading, pinned = layout.pinned(scroll)
+
+    assert_predicate heading, :month?
+    assert_equal body.y, pinned.y
+    assert_nil layout.control_at(body.center_x, body.y + 5, scroll), "the pinned heading, not the day under it"
+    assert_equal [:day, 1718], layout.control_at(body.center_x, body.y + 40, scroll).id
+    assert_nil layout.pinned(0), "at the top the heading is in its own place"
+  end
 end

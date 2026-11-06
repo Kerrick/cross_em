@@ -100,18 +100,9 @@ module CrossEm
             rect = layout.row_rect(row, scroll)
             row.month? ? month(rect, row) : day(play, rect, row, sheet.focus == row.number)
           end
-          pinned(layout, rows, scroll)
+          heading, rect = layout.pinned(scroll)
+          month(rect, heading) if heading
         end
-      end
-
-      def pinned(layout, rows, scroll)
-        heading = layout.list.month_of(rows.first) or return
-        return if heading.y >= scroll
-
-        top = layout.body.y
-        following = rows.find { it.month? && it.y > heading.y }
-        top = [top, layout.row_rect(following, scroll).y - heading.height].min if following
-        month(Presentation::Rect.new(x: layout.body.x, y: top, width: layout.body.width, height: heading.height), heading)
       end
 
       def month(rect, row)

@@ -121,9 +121,12 @@ module CrossEm
       def most_scroll = [content_height - body.height, 0].max
       def scrolls? = most_scroll.positive?
 
-      # The day under (+px+, +py+) with the list scrolled by +scroll+.
+      # The day under (+px+, +py+) with the list scrolled by +scroll+. The
+      # month heading pinned at the top covers the day scrolled under it,
+      # so a tap there opens nothing.
       def control_at(px, py, scroll)
         return unless body.contains?(px, py)
+        return if pinned(scroll)&.last&.contains?(px, py)
 
         row = list.row_at(py - body.y + scroll)
         SheetLayout::Control.new(id: [:day, row.number], kind: :day, rect: row_rect(row, 0), text: nil, detail: nil,
@@ -133,6 +136,21 @@ module CrossEm
       # Where +row+ is drawn on the screen with the list scrolled by
       # +scroll+.
       def row_rect(row, scroll) = Rect.new(x: body.x, y: body.y + row.y - scroll, width: body.width, height: row.height)
+
+      # The month heading pinned to the top of the body with the list
+      # scrolled by +scroll+, and where it is drawn: [row, rect], or nil
+      # while the heading is in its own place. The next month's heading
+      # pushes it up and away.
+      def pinned(scroll)
+        rows = visible(scroll)
+        heading = rows.first && list.month_of(rows.first) or return
+        return if heading.y >= scroll
+
+        top = body.y
+        following = rows.find { it.month? && it.y > heading.y }
+        top = [top, row_rect(following, scroll).y - heading.height].min if following
+        [heading, Rect.new(x: body.x, y: top, width: body.width, height: heading.height)]
+      end
 
       # The rows in view with the list scrolled by +scroll+.
       def visible(scroll) = list.visible(scroll, body.height)
