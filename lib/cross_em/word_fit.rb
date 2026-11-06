@@ -55,6 +55,20 @@ module CrossEm
             .uniq { it.positions.sort }
     end
 
+    # Which of +word+'s letters can't be had, by their places in the
+    # word: a letter on the board can be used again only by crossing it,
+    # so the most of a letter any word can use is the pool's count of it
+    # plus the board's. Occurrences past that are marked, the later ones:
+    # in CHECKED with one E to be had, the second E. A letter in neither
+    # is marked everywhere it appears. This is counting, never the word
+    # list, so it can be shown while the word is still being typed.
+    def short(word)
+      supply = pool.letters.tally.merge(board.cells.values.tally) { |_, a, b| a + b }
+      word.to_s.upcase.chars.each_with_index.filter_map do |letter, i|
+        i if (supply[letter] = supply.fetch(letter, 0) - 1).negative?
+      end
+    end
+
     # Why +word+ has no placements: a Misfit. Only meaningful when
     # #placements is empty.
     def misfit(word)

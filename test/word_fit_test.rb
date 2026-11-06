@@ -93,6 +93,25 @@ class WordFitTest < Minitest::Test
     assert_equal 1, fit(Board.empty, "EEXXXXXXXXXX").placements("EE").size
   end
 
+  def test_only_the_letters_past_what_the_pool_and_board_hold_are_short
+    # 1719's pool: one E and one C.
+    word_fit = fit(Board.empty, "HPWLKNDHACEB")
+
+    assert_equal [3, 5], word_fit.short("CHECKED"), "the second C and the second E"
+    assert_empty word_fit.short("BACKED")
+  end
+
+  def test_letters_on_the_board_count_towards_what_can_be_had
+    word_fit = fit(board("CAT"), "EXXXXXXXX...")
+
+    assert_empty word_fit.short("TACE"), "the T, A and C are on the board"
+    assert_equal [3], word_fit.short("CATT"), "but there is only one T"
+  end
+
+  def test_a_letter_in_neither_is_short_everywhere_it_appears
+    assert_equal [0, 2], fit(board("CAT"), "AXXXXXXXX...").short("QAQ")
+  end
+
   def test_letters_missing_from_pool_and_board_are_named
     misfit = fit(board("CAT"), "RXXXXXXXX...").misfit("CRAB")
 
