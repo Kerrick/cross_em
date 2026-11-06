@@ -190,11 +190,14 @@ module CrossEm
         targets = targets(play)
         from = ring.current(targets, default: default(play)) or return
         to = Spatial.pick(from.rect, direction, targets - [from])
-        return ring.focus(to) if to&.shown
-
         layout = play.sheet_layout
+        if to&.shown
+          play.scroll_sheet(reveal_by(layout, to.rect.outset(play.units.px(8)))) if body?(play, to)
+          return ring.focus(to)
+        end
+
         step = [layout.body.height / 3, play.units.px(40)].max
-        if to && (needed = reveal_by(layout, to.rect)).abs <= step
+        if to && (needed = reveal_by(layout, to.rect.outset(play.units.px(8)))).abs <= step
           play.scroll_sheet(needed)
           return ring.focus(to)
         end
@@ -215,7 +218,7 @@ module CrossEm
       def reveal(play, target)
         return unless play.sheet? && play.sheet.kind != :archive && !target.shown
 
-        play.scroll_sheet(reveal_by(play.sheet_layout, target.rect))
+        play.scroll_sheet(reveal_by(play.sheet_layout, target.rect.outset(play.units.px(8))))
       end
 
       # Past puzzles: Up and Down walk the days (KeyMap.focus), up from

@@ -384,9 +384,11 @@ module CrossEm
         in [:slot, _] then [target.rect, :tile, nil]
         in [:day, _] then [target.rect, :row, archive_clip]
         in [:control, _] if FocusMap.body?(self, target)
-          [target.rect, :button, sheet_layout.body]
+          body = sheet_layout.body
+          [target.rect, :button, body.with(x: sheet_layout.card.x, width: sheet_layout.card.width)]
         in [:control, _] then [target.rect.inset(0, units.px(5)), :button, nil]
         in [:button, :today] then [target.rect, :button, nil]
+        in [:sheet, :close] then [target.rect, :icon, nil]
         else [target.rect, target.region == :header ? :icon : :button, nil]
         end
       end
