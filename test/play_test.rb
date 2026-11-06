@@ -451,6 +451,18 @@ class PlayTest < Minitest::Test
     assert_empty @host.copied, "a practice result is never shared as a real one"
   end
 
+  def test_practice_hides_a_run_out_clock_while_the_days_game_is_unfinished
+    yesterday = Day.numbered(1719)
+    play = play(game: game(day: yesterday), clock: Clock.pretending(Day.numbered(1720).date))
+    play.play_again
+    play.give_up(confirmed: true)
+
+    assert_predicate play.countdown, :done?
+    assert_nil play.next_day, "the day's game is unfinished, so no new puzzle yet"
+    refute_predicate play, :countdown?, "no 00:00:00 with nothing after it"
+    assert_equal :today, play.primary, "Back to today is the way on"
+  end
+
   def test_back_to_today_returns_to_the_official_game_as_it_was
     play = play()
     official = finish_official(play)

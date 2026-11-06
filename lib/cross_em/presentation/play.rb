@@ -130,6 +130,13 @@ module CrossEm
       # UTC the day after the one being played.
       def countdown = Countdown.between(@clock.now, official.day.ends_at)
 
+      # Whether the results show the clock (or, once it has run out, the
+      # button to the next puzzle). After a practice game or a look back,
+      # while the day's game is still unfinished past its day, the clock
+      # would sit at 00:00:00 with nothing to follow it, so it is left
+      # out: "Back to today" is the way on.
+      def countdown? = mode == :official || !!next_day || !countdown.done?
+
       # The day a finished game makes way for, once its clock runs out.
       # A game in progress keeps its day, however late it gets.
       def next_day = official.over? && countdown.done? ? @clock.today : nil

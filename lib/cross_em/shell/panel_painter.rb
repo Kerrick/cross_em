@@ -127,7 +127,7 @@ module CrossEm
         if (numbers = play.stats) then stats(numbers, results.stats)
         else note(play, results.stats)
         end
-        countdown(play, results.countdown)
+        countdown(play, results.countdown) if play.countdown?
         primary = play.primary
         @buttons.draw(results.copy, play.label(primary), kind: play.next_day ? :plain : :primary,
                                                          pressed: pressed?(play, primary))
