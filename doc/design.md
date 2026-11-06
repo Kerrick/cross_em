@@ -409,6 +409,21 @@ steps).
   only with letters to shuffle; Enter still opens the next
   puzzle, but only with nothing typed. Letters no longer pick up tiles.
 
+- **Every button on a key.** Letters type, so every other action is on
+  a key that isn't a letter, or on a letter with Ctrl (Cmd on a Mac).
+  Shift goes with the keys of the whole game: Shift+Backspace resets,
+  Shift+Esc gives up (twice, as the button asks), Shift+Enter plays again;
+  Space shuffles, Enter goes on from the results, Ctrl/Cmd+T goes back to
+  today, Ctrl/Cmd+P opens Past puzzles, ? or F1 How to play (and C in it
+  the Credits), Ctrl/Cmd+D flips the page, Ctrl/Cmd+S the sound, and
+  Ctrl/Cmd+C copies. Each button shows its keys as keycaps after its label
+  on a computer (never on a touch screen), and when they don't fit, or the
+  button is an icon, a tooltip shows them; no sentence lists them (Johnson:
+  recognition over recall). `KeyMap` turns a key into a named action
+  (`:reset`, `:give_up`, `[:type, "C"]`), and `Play#act` carries it out
+  through the same path as a click, so a key only acts when its button is
+  live, and another input can name the same actions.
+
 Touch and mouse play are unchanged.
 
 ## Playing again and the archive (`Presentation::ArchiveList`, `Session#practice`)

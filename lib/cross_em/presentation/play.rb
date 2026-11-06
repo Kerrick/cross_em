@@ -24,8 +24,9 @@ module CrossEm
       # screen can show instead a practice game of any day, or look back
       # at a past day's finished board; neither is ever saved, and moving
       # between them never changes the official game.
-      def initialize(game:, session:, settings:, host:, measure:, clock: Clock.real, touch: false)
+      def initialize(game:, session:, settings:, host:, measure:, clock: Clock.real, touch: false, command_key: "Ctrl")
         @session, @settings, @host, @measure, @clock, @touch = session, settings, host, measure, clock, touch
+        @command_key = command_key
         @time = 0.0
         @sheets = []
         @layouts = {}
@@ -105,15 +106,16 @@ module CrossEm
         return @sheet_layouts[kind] ||= ArchiveLayout.build(list: archive_list, safe: safe_rect, units:) if kind == :archive
 
         @sheet_layouts[kind] ||= SheetLayout.build(blocks: blocks(kind), safe: safe_rect, units:, measure: @measure,
-                                                   link: kind == :help ? [:credits, Copy::CREDITS] : nil)
+                                                   link: kind == :help ? [:credits, Copy::CREDITS, @touch ? 88 : 116] : nil)
       end
 
       # Whether the player is at a computer, with a keyboard and a mouse,
       # rather than a touch screen.
       def keyboard? = !@touch
 
-      # A tooltip naming the header button the mouse has rested on, as
-      # [text, the button's rect], or nil.
+      # A tooltip for the button the mouse has rested on, on a computer:
+      # [text, keycaps, the button's rect]. A header button's names what
+      # it does, since it is an icon; every button's shows its keys.
       def tooltip
         return if @touch || sheet? || gesture
 
@@ -122,9 +124,11 @@ module CrossEm
         text = case name
                when :theme then Copy::TIPS[@host.dark? ? :light : :dark]
                when :sound then Copy::TIPS[@settings.muted ? :unmute : :mute]
-               else Copy::TIPS[name]
+               when :archive, :help then Copy::TIPS[name] if layout.header_buttons.any? { it.last == rect }
+               when :today then Copy::TIPS[:today] if rect == layout.wordmark
                end
-        [text, rect] if text
+        keys = keycaps(name)
+        [text, keys, rect] if text || keys
       end
 
       # How long after the event being told now its animation and sound
@@ -214,6 +218,50 @@ module CrossEm
 
       def text(text) = KeyMap.text(self, text)
       def key(key, command: false, shift: false) = KeyMap.key(self, key, command:, shift:)
+
+      # Carries out a named action, whichever input asked for it: a key
+      # (KeyMap), or anything else that names actions. The buttons'
+      # actions go through #press_button, so a key does exactly what a
+      # click does, only when the button would be live.
+      def act(action, arg = nil)
+        case action
+        when :type then typing.type(arg)
+        when :choose then typing.choose(arg)
+        when :cycle then typing.cycle(arg)
+        when :enter then enter
+        when :space then space
+        when :erase then erase
+        when :escape then escape
+        when :help then toggle_help
+        when :credits then open(:credits)
+        when :close then close_sheet
+        when :scroll then KeyMap.scroll(self, arg)
+        when :focus then KeyMap.focus(self, arg)
+        when :open_day then open_focus
+        else press_button(action) if button?(action)
+        end
+      end
+
+      # Whether +name+'s button is on screen and live, so its key may act.
+      def button?(name)
+        case name
+        when :shuffle, :reset, :give_up then game.playing? && enabled?(name)
+        when :again then game.over?
+        when :today then mode != :official
+        when :copy then game.over? && mode == :official
+        when :next then !next_day.nil?
+        when :archive, :theme, :sound then true
+        else false
+        end
+      end
+
+      # The keys for +name+'s action, as keycaps to show by its button
+      # (KeyMap::KEYCAPS), on a computer; nil on a touch screen.
+      def keycaps(name)
+        return if @touch
+
+        KeyMap::KEYCAPS[name]&.map { it == :command ? @command_key : it }
+      end
 
       # --- Actions, by name, as the buttons and a Script call them ---
 
@@ -394,9 +442,14 @@ module CrossEm
         end
       end
 
-      # Enter: places a typed word, or opens today's puzzle once the
-      # finished one's clock has run out.
-      def enter = typing.submit || next_puzzle
+      # Enter: places a typed word, or, from the results, opens today's
+      # puzzle once the finished one's clock has run out, or goes back to
+      # today from practice or a look back.
+      def enter
+        return true if typing.submit
+        return next_puzzle if next_day
+        return back_to_today if game.over? && mode != :official
+      end
 
       # Space: places a typed word, or else shuffles.
       def space

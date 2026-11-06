@@ -7,12 +7,14 @@ module CrossEm
     # A label too long for its button wraps onto two lines in a smaller
     # size, rather than being cut off.
     class ButtonPainter
-      def initialize(pen)
-        @pen = pen
+      def initialize(pen, keys)
+        @pen, @keys = pen, keys
       end
 
-      # +kind+ is :plain, :primary, :danger or :disabled.
-      def draw(rect, label, kind: :plain, pressed: false)
+      # +kind+ is :plain, :primary, :danger or :disabled. +keys+, on a
+      # computer, are the keycaps for the button's action, drawn after
+      # its label when they fit (a tooltip shows them when they don't).
+      def draw(rect, label, kind: :plain, pressed: false, keys: nil)
         palette = @pen.palette
         radius = @pen.px(12)
         rect = rect.offset(0, @pen.px(1)) if pressed
@@ -29,7 +31,21 @@ module CrossEm
                 when :disabled then palette.ink_muted
                 else palette.ink
                 end
-        label(rect, label, color, alpha: kind == :disabled ? 0.6 : 1.0)
+        alpha = kind == :disabled ? 0.6 : 1.0
+        return label(rect, label, color, alpha:) unless keys && fits?(rect, label, keys)
+
+        font = @pen.type.button
+        height = @pen.px(18)
+        gap = @pen.px(8)
+        width = font.width(label) + gap + @keys.chord_width(keys, height)
+        x = (rect.center_x - (width / 2.0)).round
+        @pen.text(label, font, x, @pen.middle_top(font, rect.center_y), color, alpha:)
+        @keys.chord(keys, x + font.width(label) + gap, rect.center_y - (height / 2.0), height, alpha: alpha * 0.9)
+      end
+
+      # Whether +label+ and its +keys+ fit on one line in +rect+.
+      def fits?(rect, label, keys)
+        @pen.type.button.width(label) + @pen.px(8) + @keys.chord_width(keys, @pen.px(18)) <= rect.width - @pen.px(16)
       end
 
       private

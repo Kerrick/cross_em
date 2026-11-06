@@ -11,22 +11,31 @@
 # the header opens Past puzzles: any day can be played again for fun, as
 # practice that is never saved, and a finished day shows its board.
 #
-# On a keyboard:
+# On a keyboard (every button shows its keys beside its label; the
+# header's in a tooltip):
 #
-#   A-Z            type a word
-#   Enter, Space   place it where it fits; with nothing typed, Enter
-#                  plays the next puzzle when it is ready and Space
-#                  shuffles
-#   Tab, arrows    when it fits several places, show the next (Shift+Tab,
-#                  Up and Left the one before)
-#   1-9            place it in that numbered place
-#   Backspace      the last letter typed; with nothing typed, takes back
-#                  the last word placed (then the one before)
-#   Esc            back from choosing a place, clears what is typed, puts
-#                  down a letter picked up, or closes a sheet
-#   ?              How to play
-#   Ctrl/Cmd+C     copies the result once the game is over
-#   F11            fullscreen
+#   A-Z               type a word
+#   Enter, Space      place it where it fits; with nothing typed, Enter
+#                     goes on from the results (the next puzzle when it
+#                     is ready, or back to today)
+#   Tab, arrows       when it fits several places, show the next (Shift+Tab,
+#                     Up and Left the one before)
+#   1-9               place it in that numbered place
+#   Backspace         the last letter typed; with nothing typed, takes
+#                     back the last word placed (then the one before)
+#   Esc               back from choosing a place, clears what is typed,
+#                     puts down a letter picked up, or closes a sheet
+#   Space             with nothing typed, Shuffle
+#   Shift+Backspace   Reset (Ctrl/Cmd+Backspace too)
+#   Shift+Esc         Give up, pressed twice
+#   Shift+Enter       Play again, once the game is over
+#   Ctrl/Cmd+T        back to today from practice or a look back
+#   Ctrl/Cmd+P        Past puzzles
+#   ?, F1             How to play; in it, C opens the Credits
+#   Ctrl/Cmd+D        the page's appearance, light or dark
+#   Ctrl/Cmd+S        sound on or off
+#   Ctrl/Cmd+C        copies the result once the game is over
+#   F11               fullscreen
 #
 # In Past puzzles, Up and Down walk the days, Page Up, Page Down, Home and
 # End go further, and Enter opens the day.

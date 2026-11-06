@@ -32,7 +32,8 @@ module CrossEm
         @fonts = FontBook.new(Look::TYPE)
         @play = Presentation::Play.new(game: open_game(@clock.today), session: @session,
                                        settings:, host: self, measure: nil, clock: @clock,
-                                       touch: TOUCH_SYSTEMS.include?(@os))
+                                       touch: TOUCH_SYSTEMS.include?(@os),
+                                       command_key: ["OS X", "macOS"].include?(@os) ? "Cmd" : "Ctrl")
         resize
         @play.open(:help, sound: false) unless settings.instructions_seen
         development_settings

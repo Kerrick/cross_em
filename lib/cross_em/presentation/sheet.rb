@@ -65,9 +65,9 @@ module CrossEm
 
       M = Look::METRICS
 
-      # +link+, if given as [id, text], is a button in the title bar,
-      # beside the close button, always in reach however far the body
-      # has scrolled.
+      # +link+, if given as [id, text] (or [id, text, width in points]),
+      # is a button in the title bar, beside the close button, always in
+      # reach however far the body has scrolled.
       def self.build(blocks:, safe:, units:, measure:, link: nil)
         Builder.new(safe:, units:, measure:).build(blocks, link)
       end
@@ -116,8 +116,8 @@ module CrossEm
 
         def px(points) = @u.px(points)
 
-        def title_link((id, text), close)
-          width = px(88)
+        def title_link((id, text, points), close)
+          width = px(points || 88)
           rect = Rect.new(x: close.x - px(4) - width, y: close.y, width:, height: close.height)
           Control.new(id:, kind: :button, rect:, text:, detail: nil, primary: false)
         end

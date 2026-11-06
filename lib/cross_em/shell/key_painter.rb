@@ -14,7 +14,7 @@ module CrossEm
       # How wide the key labelled +label+ (a String, or :return) is drawn
       # +height+ pixels tall.
       def width(label, height)
-        inner = label == :return ? (height * 0.7).round : font(height).width(label)
+        inner = label.is_a?(Symbol) ? (height * 0.7).round : font(height).width(label)
         [height, inner + @pen.px(10)].max
       end
 
@@ -31,13 +31,37 @@ module CrossEm
         cap = rect.with(height: rect.height - edge)
         @pen.fill(cap, palette.card, alpha:, radius:)
         @pen.outline(cap, color, width: @pen.stroke(1), alpha:, radius:)
-        if label == :return then return_arrow(cap, color, alpha)
+        case label
+        when :return then return_arrow(cap, color, alpha)
+        when :backspace then back_arrow(cap, color, alpha)
         else @pen.centered(label, font(height), cap, color, alpha:)
         end
         rect.width
       end
 
+      # Keys pressed together, as +labels+ side by side: how wide.
+      def chord_width(labels, height) = labels.sum { width(it, height) } + (@pen.px(3) * (labels.size - 1))
+
+      # Draws keys pressed together from (+x+, +y+); answers the width.
+      def chord(labels, x, y, height, color: nil, alpha: 1.0)
+        start = x
+        labels.each { x += draw(it, x, y, height, color:, alpha:) + @pen.px(3) }
+        x - start - @pen.px(3)
+      end
+
       private
+
+      # ⌫: an arrow pointing left.
+      def back_arrow(cap, color, alpha)
+        w = @pen.stroke(1.5)
+        size = cap.height * 0.5
+        left = cap.center_x - (size * 0.55)
+        right = cap.center_x + (size * 0.55)
+        y = cap.center_y
+        head = size * 0.35
+        @pen.line(color, w, left, y, right, y, alpha:)
+        @pen.line(color, w, left + head, y - head, left, y, left + head, y + head, alpha:)
+      end
 
       def font(height) = @pen.type.fonts.sans_bold([(height * 0.5).round, 9].max)
 

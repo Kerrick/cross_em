@@ -12,8 +12,8 @@ module CrossEm
     class HeaderPainter
       G = ::Lota::Graphics
 
-      def initialize(pen, chips)
-        @pen, @chips = pen, chips
+      def initialize(pen, chips, keys)
+        @pen, @chips, @keys = pen, chips, keys
       end
 
       def draw(play, dark:, muted:)
@@ -93,21 +93,32 @@ module CrossEm
 
       public
 
-      # The name of the header button the mouse rests on, in a small card
-      # under it, kept inside the window.
+      # A small card under the button the mouse rests on: what a header
+      # button does, and the keys for any button's action, kept inside
+      # the window.
       def tooltip(play)
         tip = play.tooltip or return
-        text, rect = tip
+        text, keys, rect = tip
         palette = @pen.palette
         font = @pen.type.fonts.sans_bold(@pen.px(13))
-        width = font.width(text) + @pen.px(16)
-        height = font.height + @pen.px(10)
+        key_height = @pen.px(18)
+        gap = @pen.px(8)
+        inner = (text ? font.width(text) : 0) + (keys ? @keys.chord_width(keys, key_height) : 0) + (text && keys ? gap : 0)
+        width = inner + @pen.px(16)
+        height = [font.height, key_height].max + @pen.px(10)
         x = (rect.center_x - (width / 2.0)).round.clamp(@pen.px(4), play.layout.width - width - @pen.px(4))
-        x = rect.x if rect.width > @pen.px(Presentation::Look::METRICS.touch)
-        box = Presentation::Rect.new(x:, y: rect.bottom + @pen.px(2), width:, height:)
+        x = rect.x if rect.width > @pen.px(Presentation::Look::METRICS.touch) * 2 && rect.y < play.layout.header.bottom
+        below = rect.bottom + @pen.px(2)
+        y = below + height <= play.layout.height ? below : rect.y - height - @pen.px(2)
+        box = Presentation::Rect.new(x:, y:, width:, height:)
         @pen.fill(box.offset(0, @pen.px(2)), palette.shadow, radius: @pen.px(6))
         @pen.fill(box, palette.ink, radius: @pen.px(6))
-        @pen.centered(text, font, box, palette.page)
+        left = box.x + @pen.px(8)
+        if text
+          @pen.text(text, font, left, @pen.middle_top(font, box.center_y), palette.page)
+          left += font.width(text) + gap
+        end
+        @keys.chord(keys, left, box.center_y - (key_height / 2.0), key_height) if keys
       end
 
       private

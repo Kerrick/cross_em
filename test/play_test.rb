@@ -233,7 +233,7 @@ class PlayTest < Minitest::Test
     assert_nil play.tooltip, "not at once"
     play.update(1.0)
 
-    assert_equal [Copy::TIPS[:help], button], play.tooltip
+    assert_equal [Copy::TIPS[:help], ["?"], button], play.tooltip
     play.hover(1, play.layout.height - 1)
 
     assert_nil play.tooltip

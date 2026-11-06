@@ -103,7 +103,7 @@ module CrossEm
           Block.bullet("Shuffle mixes up the pool. Reset sends every letter back."),
           (Block.bullet("On a keyboard, type a word and press Enter to place it. A hatched letter is one you " \
                         "don't have. If the word fits more than one place, Tab shows each. Backspace takes back " \
-                        "the last word.") unless touch),
+                        "the last word. Every button shows its keys.") unless touch),
           Block.space,
           Block.toggle(:calm, "Calm motion", "Gentle fades instead of flights and bounces."),
           Block.space,

@@ -60,7 +60,7 @@ module CrossEm
       # shorter than its reach.
       def link(control, play)
         pressed = play.gesture&.target == [:sheet, :link] && play.gesture.tap?
-        @buttons.draw(control.rect.inset(0, @pen.px(5)), control.text, kind: :plain, pressed:)
+        @buttons.draw(control.rect.inset(0, @pen.px(5)), control.text, kind: :plain, pressed:, keys: play.keycaps(control.id))
       end
 
       def body(play, layout, scroll)

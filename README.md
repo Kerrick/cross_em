@@ -34,16 +34,27 @@ more than one place, the places are numbered on the board; click one, or
 press its number, to put the word there. As you type, a letter you don't have
 (in the pool, or on the board to cross) is hatched at once.
 
+Every button shows its keys beside its label, and the header's buttons show
+theirs in a tooltip.
+
 | Key | What it does |
 | --- | --- |
 | A–Z | Type a word |
-| Enter, Space | Place it. With nothing typed, Enter plays the next puzzle when it's ready and Space shuffles |
+| Enter, Space | Place it. With nothing typed, Enter goes on from the results: the next puzzle when it's ready, or back to today |
 | Tab, arrows | When a word fits several places, show the next one (Shift+Tab, Up, Left: the one before) |
 | 1–9 | Place the word in that numbered place |
 | Backspace | Delete the last letter typed. With nothing typed, take back the last word placed, then the one before |
 | Esc | Go back from choosing a place, clear what you typed, put down a letter, or close a sheet |
-| ? | How to play |
-| Ctrl+C (Cmd+C on a Mac) | Copy the result once the game is over |
+| Space | With nothing typed: Shuffle |
+| Shift+Backspace | Reset (Ctrl+Backspace, Cmd+Backspace on a Mac, too) |
+| Shift+Esc | Give up (press it twice) |
+| Shift+Enter | Play again, once the game is over |
+| Ctrl+T (Cmd+T on a Mac) | Back to today from practice or a look back |
+| Ctrl+P (Cmd+P) | Past puzzles |
+| ?, F1 | How to play; in it, C opens the Credits |
+| Ctrl+D (Cmd+D) | Light or dark page |
+| Ctrl+S (Cmd+S) | Sound on or off |
+| Ctrl+C (Cmd+C) | Copy the result once the game is over |
 | F11 | Fullscreen |
 
 In Past puzzles, Up and Down move from day to day, Page Up, Page Down, Home and

@@ -70,17 +70,28 @@ module CrossEm
         @hover = {target:, since: now} unless @hover && @hover[:target] == target
       end
 
-      # The header button the mouse has rested on for +delay+ seconds, as
-      # [name, rect], or nil.
+      # The button the mouse has rested on for +delay+ seconds, as [name,
+      # rect], or nil.
       def resting(now, delay)
         hover = @hover or return
         return if now - hover[:since] < delay
 
         case hover[:target]
-        in [:button, :today] then [:today, @play.layout.wordmark]
-        in [:button, name] then @play.layout.header_buttons.find { it.first == name }
+        in [:button, name] then (rect = button_rect(name)) && [name, rect]
         else nil
         end
+      end
+
+      # Where button +name+ is now, or nil.
+      def button_rect(name)
+        layout = @play.layout
+        found = layout.header_buttons.find { it.first == name }&.last
+        found ||= layout.controls&.each&.find { it.first == name }&.last
+        if (results = layout.results)
+          found ||= {@play.primary => results.copy, again: results.again, archive: results.archive,
+                     next: results.countdown}[name]
+        end
+        found || (name == :today && (@play.practice? || @play.review?) ? layout.wordmark : nil)
       end
 
       # What the mouse pointer should look like over (+x+, +y+): a hand

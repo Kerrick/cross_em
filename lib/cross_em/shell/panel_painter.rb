@@ -34,7 +34,7 @@ module CrossEm
                elsif name == :give_up && play.armed? then :danger
                else :plain
                end
-        @buttons.draw(rect, play.label(name), kind:, pressed: pressed?(play, name))
+        @buttons.draw(rect, play.label(name), kind:, pressed: pressed?(play, name), keys: play.keycaps(name))
       end
 
       def pressed?(play, name) = play.gesture&.target == [:button, name] && play.gesture.tap?
@@ -200,9 +200,9 @@ module CrossEm
         countdown(play, results.countdown) if play.countdown?
         primary = play.primary
         @buttons.draw(results.copy, play.label(primary), kind: play.next_day ? :plain : :primary,
-                                                         pressed: pressed?(play, primary))
+                                                         pressed: pressed?(play, primary), keys: primary_keys(play, primary))
         %i[again archive].each do |name|
-          @buttons.draw(results.public_send(name), play.label(name), pressed: pressed?(play, name))
+          @buttons.draw(results.public_send(name), play.label(name), pressed: pressed?(play, name), keys: play.keycaps(name))
         end
       end
 
@@ -228,6 +228,10 @@ module CrossEm
 
         @pen.text(why, small, x + font.width(count) + @pen.px(12), y + ((font.height - small.height) / 2.0), palette.problem)
       end
+
+      # The results' main button's keys: Ctrl/Cmd+C to share, or, back to
+      # today, Return, which goes there from the results.
+      def primary_keys(play, primary) = primary == :today ? play.keycaps(:next) : play.keycaps(primary)
 
       # Where the statistics go for a game that doesn't count: its chip,
       # so a practice result is never mistaken for the day's, and for a
@@ -262,7 +266,7 @@ module CrossEm
       def countdown(play, rect)
         if (day = play.next_day)
           return @buttons.draw(rect, Presentation::Copy.play_number(day), kind: :primary,
-                                                                          pressed: pressed?(play, :next))
+                                                                          pressed: pressed?(play, :next), keys: play.keycaps(:next))
         end
 
         palette = @pen.palette
