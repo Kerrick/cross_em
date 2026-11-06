@@ -140,6 +140,16 @@ module CrossEm
         game.pool.slots.each_index.select { |i| (letter = game.pool[i]) && wanted[letter].to_i.positive? && (wanted[letter] -= 1) }.to_set
       end
 
+      # Lets go of the places being chosen among, as when a tap, a
+      # shuffle or a reset changes the board or the pool they were
+      # worked out for. The draft stays, so Enter looks again.
+      def drop_choice
+        return unless choosing?
+
+        @choice = nil
+        @play.refit
+      end
+
       # The cells to keep in view while choosing.
       def cells = choosing? ? @choice.current.positions : []
 

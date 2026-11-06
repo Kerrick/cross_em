@@ -151,6 +151,33 @@ class PlayTest < Minitest::Test
     assert_equal 4, play.game.board.size
   end
 
+  def test_a_tap_lets_go_of_the_places_being_chosen_so_enter_looks_again
+    play = play(game: game(pool: "CATSDOGTAGCA"))
+    type(play, "CAT")
+    play.key(:return)
+    type(play, "TA")
+    play.key(:return)
+    tap_rect(play, play.view.rect_of(Position::ORIGIN)) # sends the C back
+
+    refute_predicate play.typing, :choosing?
+    assert_equal "TA", play.typing.draft, "the draft stays"
+    assert_empty play.typing.cells
+    play.key(:return)
+
+    assert play.typing.choosing? || play.typing.draft.empty?, "Enter worked out where it fits now"
+  end
+
+  def test_a_shuffle_lets_go_of_the_places_being_chosen
+    play = play(game: game(pool: "CATSDOGTAGCA"))
+    type(play, "CAT")
+    play.key(:return)
+    type(play, "TA")
+    play.key(:return)
+    play.press_button(:shuffle)
+
+    refute_predicate play.typing, :choosing?
+  end
+
   def test_esc_goes_back_from_choosing_to_the_draft_then_clears_it
     play = play(game: game(pool: "CATSDOGTAGCA"))
     type(play, "CAT")

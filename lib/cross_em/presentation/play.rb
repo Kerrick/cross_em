@@ -193,13 +193,17 @@ module CrossEm
 
       # --- Actions, by name, as the buttons and a Script call them ---
 
+      # A tap on the pool or the board changes what a typed word's places
+      # were worked out for, so any being chosen among are let go.
       def pick(index)
         disarm
+        typing.drop_choice
         game.tap_slot(index)
       end
 
       def tap_cell(position)
         disarm
+        typing.drop_choice
         game.tap_cell(position) if position
       end
 
@@ -225,8 +229,9 @@ module CrossEm
         when :today then back_to_today
         when :theme then change(appearance: Appearance.flip(@settings.appearance, @host.system_theme))
         when :sound then change(muted: !@settings.muted)
-        when :shuffle then game.shuffle
-        when :reset then game.reset
+        when :shuffle, :reset
+          typing.drop_choice
+          game.public_send(name)
         when :give_up then give_up
         when :copy then copy
         when :next then @host.next_day if next_day
