@@ -13,7 +13,12 @@ module CrossEm
     #   Enter, Space      place it; with nothing typed, Enter goes on from
     #                     the results (the next puzzle, or back to today)
     #   Tab, arrows       while choosing: the next place (Shift+Tab, Up
-    #                     and Left the one before)
+    #                     and Left the one before); with nothing typed,
+    #                     the arrows move the focus ring by direction and
+    #                     Tab jumps between the header, the board, the
+    #                     pool and the buttons (FocusMap)
+    #   Enter, Space      with nothing typed, once the focus ring shows:
+    #                     what a click on the focus would do
     #   1-9               while choosing: place it there
     #   Backspace         the last letter typed; with nothing typed, takes
     #                     back the last word placed (then the one before)
@@ -31,7 +36,9 @@ module CrossEm
     #   Ctrl/Cmd+C        copies the result once the game is over
     #
     # In Past puzzles, Up and Down move from day to day, Page Up, Page
-    # Down, Home and End further, and Enter opens the day.
+    # Down, Home and End further, and Enter opens the day. In the other
+    # sheets the arrows move the focus among their controls, scrolling
+    # when there is none that way, and Tab steps through them.
     module KeyMap
       # The keys each named action is on, as keycaps to show beside its
       # button: a String is a key's label, :return and :backspace are
@@ -71,36 +78,52 @@ module CrossEm
       def key_action(play, key, command: false, shift: false)
         return [:help] if key == :f1
         return [COMMANDS[key]] if command && COMMANDS.key?(key)
-        return sheet_action(play, key) if play.sheet?
+        return sheet_action(play, key, shift:) if play.sheet?
 
         case key
         when :escape then shift ? [:give_up] : [:escape]
-        when :return, :kpenter then shift ? [:again] : [:enter]
-        when :space then [:space]
+        when :return, :kpenter then shift ? [:again] : (focus?(play) ? [:activate] : [:enter])
+        when :space then focus?(play) ? [:activate] : [:space]
         when :backspace, :delete then shift || command ? [:reset] : [:erase]
-        when :tab then [:cycle, shift ? -1 : 1]
-        when :up, :left then [:cycle, -1]
-        when :down, :right then [:cycle, 1]
+        when :tab then typing?(play) ? [:cycle, shift ? -1 : 1] : [:hop, shift ? -1 : 1]
+        when :up, :left then typing?(play) ? [:cycle, -1] : [:move, key]
+        when :down, :right then typing?(play) ? [:cycle, 1] : [:move, key]
         end
       end
 
-      def sheet_action(play, key)
-        return archive_action(key) if play.sheet.kind == :archive
+      # Whether a word is being typed, or its places chosen among: then
+      # Tab and the arrows are the word's (Typing#cycle), not the focus's.
+      def typing?(play) = play.typing.drafting? || play.typing.choosing?
+
+      # Whether Enter and Space act on the focus: once its ring shows, and
+      # with nothing typed. Until then they place a word, shuffle, or go
+      # on from the results, as they always have.
+      def focus?(play) = play.focus_visible? && !typing?(play)
+
+      def sheet_action(play, key, shift: false)
+        return archive_action(play, key, shift:) if play.sheet.kind == :archive
 
         case key
-        when :escape, :return, :kpenter then [:close]
-        when :up, :pageup, :down, :pagedown, :home, :end then [:scroll, key]
+        when :escape then [:close]
+        when :return, :kpenter then play.focus_visible? ? [:activate] : [:close]
+        when :space then [:activate] if play.focus_visible?
+        when :up, :down, :left, :right then [:move, key]
+        when :tab then [:hop, shift ? -1 : 1]
+        when :pageup, :pagedown, :home, :end then [:scroll, key]
         end
       end
 
       # Past puzzles: the arrows move from day to day, Page Up and Page
       # Down a page, Home and End to the newest and the oldest, and Enter
-      # opens the day.
-      def archive_action(key)
+      # opens the day (or, with the ring on it, closes the sheet). Up from
+      # today reaches the close button.
+      def archive_action(play, key, shift: false)
         case key
         when :escape then [:close]
-        when :return, :kpenter then [:open_day]
-        when :up, :down, :pageup, :pagedown, :home, :end then [:focus, key]
+        when :return, :kpenter, :space then play.focus_visible? ? [:activate] : (key == :space ? nil : [:open_day])
+        when :up, :down then [:move, key]
+        when :tab then [:hop, shift ? -1 : 1]
+        when :pageup, :pagedown, :home, :end then [:focus, key]
         end
       end
 

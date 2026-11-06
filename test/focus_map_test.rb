@@ -491,4 +491,62 @@ class FocusMapTest < Minitest::Test
     assert_predicate PadGlyph.new(button: :y, family: :xbox), :round?
     refute_predicate PadGlyph.new(button: :back, family: :xbox), :round?
   end
+
+  # --- The keyboard ---
+
+  def test_space_shuffles_until_the_arrows_show_the_ring_then_acts_on_the_focus
+    play = play()
+    srand(2)
+    before = play.game.pool.slots
+    play.key(:space)
+
+    refute_equal before, play.game.pool.slots, "Space shuffles"
+    play.key(:right)
+    play.key(:space)
+
+    assert_equal 0, play.game.selected, "now Space picks up the focused letter"
+    play.key(:return)
+
+    assert_nil play.game.selected, "and Enter puts it down"
+  end
+
+  def test_typing_a_word_hides_the_ring_and_the_arrows_are_the_words_again
+    play = play(game: game(board: board("C"), pool: ".ATSDOGTAGCA"))
+    play.key(:down)
+
+    assert_predicate play, :focus_visible?
+    play.text("a")
+
+    refute_predicate play, :focus_visible?
+    play.key(:down)
+
+    refute_predicate play, :focus_visible?, "while a word is typed, the arrows don't move the focus"
+    play.key(:escape)
+    play.key(:tab)
+
+    assert_predicate play, :focus_visible?
+  end
+
+  def test_enter_still_goes_on_from_the_results_until_the_ring_shows
+    play = play()
+    play.give_up(confirmed: true)
+    play.play_again
+    play.give_up(confirmed: true)
+    play.key(:return)
+
+    assert_equal :official, play.mode, "Enter: back to today"
+  end
+
+  def test_tab_hops_regions
+    play = play()
+    play.key(:tab)
+
+    assert_equal :pool, play.focused.region
+    play.key(:tab)
+
+    assert_equal :controls, play.focused.region
+    play.key(:tab, shift: true)
+
+    assert_equal :pool, play.focused.region
+  end
 end

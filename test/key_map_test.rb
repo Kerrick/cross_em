@@ -33,8 +33,8 @@ class KeyMapTest < Minitest::Test
     expected = {
       [:space, false, false] => [:space], [:backspace, false, true] => [:reset], [:backspace, true, false] => [:reset],
       [:backspace, false, false] => [:erase], [:escape, false, true] => [:give_up], [:escape, false, false] => [:escape],
-      [:return, false, true] => [:again], [:return, false, false] => [:enter], [:tab, false, false] => [:cycle, 1],
-      [:tab, false, true] => [:cycle, -1], [:f1, false, false] => [:help], [:t, true, false] => [:today],
+      [:return, false, true] => [:again], [:return, false, false] => [:enter], [:tab, false, false] => [:hop, 1],
+      [:tab, false, true] => [:hop, -1], [:f1, false, false] => [:help], [:t, true, false] => [:today],
       [:p, true, false] => [:archive], [:d, true, false] => [:theme], [:s, true, false] => [:sound],
       [:c, true, false] => [:copy]
     }
