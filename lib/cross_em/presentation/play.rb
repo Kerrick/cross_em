@@ -161,7 +161,8 @@ module CrossEm
 
       def enabled?(control)
         case control
-        when :shuffle, :give_up then game.playing?
+        when :shuffle then game.playing? && !game.pool.empty?
+        when :give_up then game.playing?
         when :reset then game.playing? && !game.board.empty?
         else true
         end
@@ -381,7 +382,7 @@ module CrossEm
       def space
         return if typing.submit
 
-        press_button(:shuffle) if game.playing?
+        press_button(:shuffle) if enabled?(:shuffle)
       end
 
       def toggle_help = sheet&.kind == :help ? close_sheet : open(:help)
