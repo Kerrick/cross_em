@@ -21,6 +21,13 @@ module CrossEm
 
       def offset(dx, dy) = with(x: x + dx, y: y + dy)
 
+      # The part of this rectangle inside +other+; empty when none is.
+      def intersect(other)
+        left, top = [x, other.x].max, [y, other.y].max
+        right, bottom = [self.right, other.right].min, [self.bottom, other.bottom].min
+        Rect.new(x: left, y: top, width: [right - left, 0].max, height: [bottom - top, 0].max)
+      end
+
       # The same rectangle on whole pixels, rounding each edge.
       def round
         left, top = x.round, y.round
