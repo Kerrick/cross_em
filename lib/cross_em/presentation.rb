@@ -14,6 +14,6 @@ end
 
 %w[
   units rect color palette appearance settings look layout board_view copy reflow sheet input clock shot_schedule
-  script archive_list sounds ease confetti motion choreographer typing spatial
+  script archive_list sounds ease confetti motion choreographer typing spatial focus_ring
   key_map pointer_map play
 ].each { require_relative "presentation/#{it}" }
