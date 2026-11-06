@@ -63,6 +63,26 @@ module CrossEm
         end
       end
 
+      # The mouse moved to (+x+, +y+) at +now+, pressed or not: remembers
+      # what it is over, and since when, for a tooltip.
+      def hover(x, y, now)
+        target = @play.sheet? ? [:sheet] : target_at(x, y)
+        @hover = {target:, since: now} unless @hover && @hover[:target] == target
+      end
+
+      # The header button the mouse has rested on for +delay+ seconds, as
+      # [name, rect], or nil.
+      def resting(now, delay)
+        hover = @hover or return
+        return if now - hover[:since] < delay
+
+        case hover[:target]
+        in [:button, :today] then [:today, @play.layout.wordmark]
+        in [:button, name] then @play.layout.header_buttons.find { it.first == name }
+        else nil
+        end
+      end
+
       # What the mouse pointer should look like over (+x+, +y+): a hand
       # over anything a click would do something to, a four-way arrow over
       # a board that pans, else the arrow.
@@ -85,6 +105,7 @@ module CrossEm
         return sheet_target_at(x, y) if @play.sheet?
 
         @play.layout.header_buttons.each { |name, rect| return [:button, name] if rect.contains?(x, y) }
+        return [:button, :today] if (@play.practice? || @play.review?) && @play.layout.wordmark.contains?(x, y)
         @play.layout.controls&.each { |name, rect| return [:button, name] if rect.contains?(x, y) }
         if (results = @play.layout.results)
           return [:button, @play.primary] if results.copy.contains?(x, y)

@@ -7,12 +7,13 @@ module CrossEm
     # calendar), How to play, the page's appearance (a sun on the light
     # page, a moon on the dark one; tapping flips it), and sound. A game
     # that doesn't count carries a tag by its number, for as long as it
-    # is shown: "Practice · doesn't count", or "Your board · read-only".
+    # is shown: a Practice chip, or a Your board chip for a look back,
+    # each a way back to today's game.
     class HeaderPainter
       G = ::Lota::Graphics
 
-      def initialize(pen)
-        @pen = pen
+      def initialize(pen, chips)
+        @pen, @chips = pen, chips
       end
 
       def draw(play, dark:, muted:)
@@ -58,56 +59,58 @@ module CrossEm
       end
 
       def tag_of(play)
-        copy = Presentation::Copy
-        if play.practice? then [copy::PRACTICE, copy::PRACTICE_DETAIL]
-        elsif play.review? then [copy::REVIEW, copy::REVIEW_DETAIL]
+        if play.practice? then [:practice, Presentation::Copy::PRACTICE]
+        elsif play.review? then [:review, Presentation::Copy::REVIEW]
         end
       end
 
-      # The wordmark, the number and the tag on one line if they fit;
-      # else the number alone, in the wordmark's slab, with the tag beside
-      # it on two lines; else the number inside the tag; else the tag
-      # alone.
-      def tagged(rect, number, (label, detail))
-        palette = @pen.palette
-        sizes = Presentation::Look::SIZES
-        bold = @pen.type.fonts.sans_bold(@pen.px(13))
-        small = @pen.type.fonts.sans(@pen.px(13))
-        inline = "#{label} · #{detail}"
-        font, number_font = fit(rect.width - pill_width(bold, inline) - @pen.px(10), number)
+      # The wordmark, the number and the chip on one line if they fit;
+      # else the number alone and the chip, the number smaller and then
+      # the chip without its × as room runs out; else the chip alone. The
+      # chip's word is never given up: a game that doesn't count always
+      # says so. The × says a tap goes back to today's game.
+      def tagged(rect, number, (kind, label))
+        chip = @chips.width(label, close: true)
+        room = rect.width - chip - @pen.px(10)
+        font, number_font = fit(room, number)
         if number_font
-          wordmark(rect.with(width: rect.width - pill_width(bold, inline) - @pen.px(10)), number)
+          wordmark(rect.with(width: room), number)
           x = rect.x + font.width("Cross ’em") + @pen.px(10) + number_font.width(number) + @pen.px(10)
-          return pill(x, rect.center_y, [[inline, bold]], palette)
+          return @chips.draw(kind, label, x, rect.center_y, close: true)
         end
 
-        slab = @pen.type.fonts.slab(@pen.px(sizes.wordmark - 5))
-        stacked = [[label, bold], [detail, small]]
-        x = rect.x
-        if slab.width(number) + @pen.px(10) + pill_width(bold, label, detail) <= rect.width
-          @pen.text(number, slab, x, @pen.middle_top(slab, rect.center_y).round, palette.ink)
-          return pill(x + slab.width(number) + @pen.px(10), rect.center_y, stacked, palette)
-        end
-        numbered = "#{number} · #{label}"
-        return pill(x, rect.center_y, [[numbered, bold], [detail, small]], palette) if pill_width(bold, numbered) <= rect.width
+        slab = @pen.type.fonts.slab(@pen.px(Presentation::Look::SIZES.wordmark - 5))
+        sans = @pen.type.fonts.sans_bold(@pen.px(15))
+        [[slab, true], [sans, true], [sans, false]].each do |font, close|
+          width = @chips.width(label, close:)
+          next if font.width(number) + @pen.px(8) + width > rect.width
 
-        pill(x, rect.center_y, stacked, palette)
+          @pen.text(number, font, rect.x, @pen.middle_top(font, rect.center_y).round, @pen.palette.ink)
+          return @chips.draw(kind, label, rect.x + font.width(number) + @pen.px(8), rect.center_y, close:)
+        end
+        @chips.draw(kind, label, rect.x, rect.center_y, close: true)
       end
 
-      def pill_width(font, *lines) = lines.map { font.width(it) }.max + @pen.px(16)
+      public
 
-      # A rounded outline around one or two short lines, the first in ink,
-      # the second muted.
-      def pill(x, center_y, lines, palette)
-        width = lines.map { |text, font| font.width(text) }.max + @pen.px(16)
-        line = lines.first[1].height
-        height = (line * lines.size) + @pen.px(8)
-        box = Presentation::Rect.new(x: x.round, y: (center_y - (height / 2.0)).round, width:, height:)
-        @pen.outline(box, palette.ink_muted, width: @pen.stroke(1.5), radius: @pen.px(8))
-        lines.each_with_index do |(text, font), i|
-          @pen.text(text, font, box.x + @pen.px(8), box.y + @pen.px(4) + (i * line), i.zero? ? palette.ink : palette.ink_muted)
-        end
+      # The name of the header button the mouse rests on, in a small card
+      # under it, kept inside the window.
+      def tooltip(play)
+        tip = play.tooltip or return
+        text, rect = tip
+        palette = @pen.palette
+        font = @pen.type.fonts.sans_bold(@pen.px(13))
+        width = font.width(text) + @pen.px(16)
+        height = font.height + @pen.px(10)
+        x = (rect.center_x - (width / 2.0)).round.clamp(@pen.px(4), play.layout.width - width - @pen.px(4))
+        x = rect.x if rect.width > @pen.px(Presentation::Look::METRICS.touch)
+        box = Presentation::Rect.new(x:, y: rect.bottom + @pen.px(2), width:, height:)
+        @pen.fill(box.offset(0, @pen.px(2)), palette.shadow, radius: @pen.px(6))
+        @pen.fill(box, palette.ink, radius: @pen.px(6))
+        @pen.centered(text, font, box, palette.page)
       end
+
+      private
 
       def icon_box(rect) = rect.inset(@pen.px(11))
 

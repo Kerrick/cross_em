@@ -108,10 +108,23 @@ module CrossEm
                                                    link: kind == :help ? [:credits, Copy::CREDITS] : nil)
       end
 
-      def status
-        return Copy.choosing(typing.choice) if typing.choosing?
+      # Whether the player is at a computer, with a keyboard and a mouse,
+      # rather than a touch screen.
+      def keyboard? = !@touch
 
-        Copy.status(game, keyboard: !@touch)
+      # A tooltip naming the header button the mouse has rested on, as
+      # [text, the button's rect], or nil.
+      def tooltip
+        return if @touch || sheet? || gesture
+
+        resting = @pointers.resting(@time, Look::TIMING.tooltip) or return
+        name, rect = resting
+        text = case name
+               when :theme then Copy::TIPS[@host.dark? ? :light : :dark]
+               when :sound then Copy::TIPS[@settings.muted ? :unmute : :mute]
+               else Copy::TIPS[name]
+               end
+        [text, rect] if text
       end
 
       # How long after the event being told now its animation and sound
@@ -175,7 +188,7 @@ module CrossEm
         when :shuffle then Copy::SHUFFLE
         when :reset then Copy::RESET
         when :give_up then armed? ? Copy::CONFIRM_GIVE_UP : Copy::GIVE_UP
-        when :again then review? ? Copy::PLAY_IT_AGAIN : Copy::PLAY_AGAIN
+        when :again then Copy::PLAY_AGAIN
         when :archive then Copy::ARCHIVE
         when :today then Copy::BACK_TO_TODAY
         when :copy
@@ -189,6 +202,7 @@ module CrossEm
       # --- Pointers (PointerMap) and keys (KeyMap) ---
 
       def pointer(event) = @pointers.pointer(event)
+      def hover(x, y) = @pointers.hover(x, y, @time)
       def press(pointer) = @pointers.press(pointer)
       def move(pointer) = @pointers.move(pointer)
       def release(pointer) = @pointers.release(pointer)
@@ -211,8 +225,12 @@ module CrossEm
         game.tap_slot(index)
       end
 
+      # A tap on the board; while a typed word's places are shown, a tap
+      # on one of them places the word there.
       def tap_cell(position)
         disarm
+        return if position && typing.choose_at(position)
+
         typing.drop_choice
         game.tap_cell(position) if position
       end

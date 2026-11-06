@@ -13,10 +13,12 @@ module CrossEm
         @pen = pen
         tiles = TilePainter.new(pen)
         buttons = ButtonPainter.new(pen)
+        chips = ChipPainter.new(pen)
+        keys = KeyPainter.new(pen)
         @board = BoardPainter.new(pen, tiles)
         @pool = PoolPainter.new(pen, tiles)
-        @header = HeaderPainter.new(pen)
-        @panel = PanelPainter.new(pen, buttons, tiles)
+        @header = HeaderPainter.new(pen, chips)
+        @panel = PanelPainter.new(pen, buttons, tiles, chips, keys)
         @sheet = SheetPainter.new(pen, buttons, tiles)
         @flights = FlightPainter.new(pen, tiles, @board, @pool)
         @confetti = ConfettiPainter.new(pen)
@@ -34,6 +36,7 @@ module CrossEm
         @panel.draw(play)
         @flights.draw(play)
         @confetti.draw(play)
+        @header.tooltip(play)
         @sheet.draw(play)
       end
 

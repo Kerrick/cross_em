@@ -29,6 +29,10 @@ module CrossEm
 
       attr_reader :draft, :choice, :misfit
 
+      # When, on Play's clock, Enter last found no place for the draft:
+      # the draft shakes from then, as a problem letter does.
+      attr_reader :refused_at
+
       # How long after the event being told its animation and sound
       # should wait: a word's later letters leave a little after its
       # first.
@@ -45,6 +49,7 @@ module CrossEm
         @draft = +""
         @choice = nil
         @misfit = nil
+        @refused_at = nil
         @words = []
       end
 
@@ -129,6 +134,32 @@ module CrossEm
         confirm
       end
 
+      # A tap or a click on the board while choosing: on one of the places
+      # shown (the one shown first, where they overlap), places the word
+      # there. Past nine places only the one shown is drawn, so only it
+      # can be tapped. Answers whether it placed the word.
+      def choose_at(position)
+        return false unless choosing?
+
+        shown = @choice.size > 9 ? [@choice.current] : [@choice.current, *@choice.placements]
+        placement = shown.find { it.positions.include?(position) } or return false
+        @choice = @choice.with(index: @choice.placements.index(placement))
+        confirm
+      end
+
+      # The places in the draft of letters the pool and the board can't
+      # supply between them (WordFit#short): marked as problems as soon as
+      # they are typed, before Enter. Counting only, never the word list.
+      def short
+        return [] unless drafting? && game.playing?
+
+        WordFit.new(board: game.board, pool: game.pool).short(@draft)
+      end
+
+      # Whether every letter of the draft can be had, so it looks ready
+      # to place.
+      def ready? = drafting? && short.empty?
+
       # The pool slots the draft would draw from, if every letter came
       # from the pool: the first slots holding each letter, as many as
       # the draft has of it. A light mark, not a promise; a word may use
@@ -182,9 +213,12 @@ module CrossEm
         @misfit = nil
       end
 
+      # No place for the draft: it shakes, with a problem's thunk, and
+      # stays to be edited.
       def refuse
         @misfit = WordFit.new(board: game.board, pool: game.pool).misfit(@draft)
-        @play.sound(:button)
+        @refused_at = @play.time
+        @play.sound(:problem)
       end
 
       # Each fresh letter from the first slot that has it, one after

@@ -22,7 +22,7 @@ module CrossEm
         motion = play.motion
         @pen.clip(view.viewport) do
           dots(view)
-          start(view) if game.playing? && game.board.empty? && !game.selected
+          start(view, motion) if game.playing? && game.board.empty? && !game.selected && !play.typing.drafting?
           targets(view, game, motion.targets) if game.playing? && game.selected
           game.board.positions.each do |position|
             next if !view.visible?(position) || motion.flying?([:cell, position])
@@ -78,10 +78,11 @@ module CrossEm
         end
       end
 
-      # On an empty board, a sunken socket where the first letter will go,
-      # so the eye has somewhere to look before a letter is picked up. It
-      # gives way to the target there as one is.
-      def start(view) = @tiles.socket(view.tile_rect(Position::ORIGIN))
+      # On an empty board, a single glowing square where the first letter
+      # will go, breathing softly, so the eye has somewhere to look and
+      # the glowing square is learnt before a word is read. It brightens
+      # as a letter is picked up.
+      def start(view, motion) = @tiles.target(view.tile_rect(Position::ORIGIN), 0.6 * motion.targets(0.0))
 
       def targets(view, game, alpha)
         game.board.targets.each do |position|
@@ -91,42 +92,49 @@ module CrossEm
         end
       end
 
-      # Every place a typed word fits, numbered: the one shown with its
-      # new letters as ghost tiles inside an outline of the whole word,
-      # the others only outlined, fainter, under it. More than nine
+      # Every place a typed word fits, numbered. The one shown has its
+      # new letters as ghost tiles inside an outline of the whole word and
+      # a filled number; each of the others marks only the cells it would
+      # fill, faintly, with its number in the first of them, so they
+      # don't run off as long rails or cover each other. More than nine
       # would only tangle, and 1 to 9 can't pick them, so then only the
       # one shown is drawn.
       def choices(view, choice)
         if choice.size <= 9
           choice.placements.each_with_index do |placement, i|
-            run(view, placement, i + 1, current: false) unless i == choice.index
+            other(view, placement, i + 1) unless i == choice.index
           end
         end
-        run(view, choice.current, choice.index + 1, current: true)
+        shown(view, choice.current, choice.index + 1)
       end
 
-      def run(view, placement, number, current:)
+      def other(view, placement, number)
+        palette = @pen.palette
+        placement.fresh.each do |position, _|
+          rect = view.tile_rect(position)
+          @pen.dashed(rect, palette.target, width: @pen.stroke(1.5), dash: @pen.px(5), gap: @pen.px(4),
+                                            radius: (rect.width * 0.14).round, alpha: 0.5)
+        end
+        first = view.tile_rect(placement.fresh.first.first)
+        badge(first.center_x, first.center_y, number, current: false)
+      end
+
+      def shown(view, placement, number)
         palette = @pen.palette
         first, last = view.rect_of(placement.positions.first), view.rect_of(placement.positions.last)
         outline = Presentation::Rect.new(x: first.x, y: first.y, width: last.right - first.x, height: last.bottom - first.y)
                                     .inset(@pen.px(1))
-        radius = (view.cell * 0.18).round
-        if current
-          placement.fresh.each { |position, letter| @tiles.ghost(view.tile_rect(position), letter, color: palette.target) }
-          @pen.outline(outline, palette.target, width: @pen.stroke(2.5), radius:)
-        else
-          @pen.dashed(outline, palette.target, width: @pen.stroke(1.5), dash: @pen.px(6), gap: @pen.px(4), radius:,
-                                               alpha: 0.55)
-        end
-        badge(outline, number, current)
+        placement.fresh.each { |position, letter| @tiles.ghost(view.tile_rect(position), letter, color: palette.target) }
+        @pen.outline(outline, palette.target, width: @pen.stroke(2.5), radius: (view.cell * 0.18).round)
+        badge(outline.x, outline.y, number, current: true)
       end
 
-      # The number that picks a place, on its first cell's corner: filled
-      # for the place shown, outlined for the rest.
-      def badge(outline, number, current)
+      # The number that picks a place: filled on the shown place's
+      # corner, outlined in the middle of another's first new cell.
+      def badge(cx, cy, number, current:)
         palette = @pen.palette
         size = @pen.px(22)
-        box = Presentation::Rect.new(x: outline.x - (size / 3), y: outline.y - (size / 3), width: size, height: size)
+        box = Presentation::Rect.new(x: (cx - (size / 2.0)).round, y: (cy - (size / 2.0)).round, width: size, height: size)
         font = @pen.type.fonts.sans_bold(@pen.px(13))
         if current
           @pen.fill(box, palette.target, radius: size / 2)

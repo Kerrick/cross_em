@@ -64,6 +64,7 @@ module CrossEm
         return unless pointer
 
         @play.pointer(pointer)
+        @play.hover(pointer.x, pointer.y)
         cursor(@play.cursor_at(pointer.x, pointer.y))
       end
 

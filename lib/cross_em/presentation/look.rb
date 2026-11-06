@@ -43,9 +43,9 @@ module CrossEm
       ZOOM = Zoom.new(width: 1200, height: 820, most: 1.5)
 
       # How long things take, in seconds.
-      class Timing < Data.define(:give_up_confirm, :copied); end
+      class Timing < Data.define(:give_up_confirm, :copied, :tooltip); end
 
-      TIMING = Timing.new(give_up_confirm: 3.0, copied: 2.5)
+      TIMING = Timing.new(give_up_confirm: 3.0, copied: 2.5, tooltip: 0.6)
     end
   end
 end

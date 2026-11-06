@@ -203,6 +203,18 @@ module CrossEm
         Math.sin(t * Math::PI * 5) * (1 - t) * 0.06
       end
 
+      # A shake that began at +since+ (a typed word Enter found no place
+      # for): its sideways offset, -1 to 1, dying away; 0 once over, and
+      # always with calm motion.
+      def wobble(since)
+        return 0.0 if since.nil? || calm
+
+        t = (@now - since) / SHAKE
+        return 0.0 unless t.between?(0.0, 1.0)
+
+        Math.sin(t * Math::PI * 5) * (1 - t)
+      end
+
       # After a win, each tile flips to its finished face in a wave from
       # the top left: answers the flip's progress, 0 to 1, or nil before it
       # begins. After a loss, tiles take their final faces in a fade.

@@ -2,13 +2,16 @@
 
 module CrossEm
   module Shell
-    # The words and buttons around the pool: while playing, the status
-    # line and the controls; once the game is over, the results: the
-    # heading, the statistics, the clock to the next puzzle, and the share
-    # button.
+    # What sits by the pool. While playing: the strip, which shows
+    # rather than says (the twelve pips that fill as letters go down and
+    # turn to marks when the check finds problems; or the word being
+    # typed, its letters marked as they are typed), and the controls.
+    # Once the game is over, the results: the heading and the count of
+    # good letters, the statistics, the clock to the next puzzle, and the
+    # share button.
     class PanelPainter
-      def initialize(pen, buttons, tiles)
-        @pen, @buttons, @tiles = pen, buttons, tiles
+      def initialize(pen, buttons, tiles, chips, keys)
+        @pen, @buttons, @tiles, @chips, @keys = pen, buttons, tiles, chips, keys
       end
 
       def draw(play)
@@ -17,8 +20,8 @@ module CrossEm
           @pen.fading(play.motion.results) { results(play, results) }
         else
           typing = play.typing
-          if typing.drafting? && !typing.choosing? then draft(play, layout.status)
-          else status(play.status, layout.status)
+          if typing.drafting? then draft(play, layout.status)
+          else strip(play, layout.status)
           end
           layout.controls.each { |name, rect| control(play, name, rect) }
         end
@@ -36,49 +39,126 @@ module CrossEm
 
       def pressed?(play, name) = play.gesture&.target == [:button, name] && play.gesture.tap?
 
-      # The sentence, wrapped to two lines at most, and under it the
-      # reasons for any problems, as many as fit, or the detail.
-      def status(status, rect)
-        palette = @pen.palette
-        font = @pen.type.status
-        lines = lines(status.text, font, rect.width)
-        small = @pen.type.reason
-        extra = status.reasons.empty? ? status.detail : reasons(status.reasons, small, rect.width)
-        line = (font.height * 1.15).round
-        total = (lines.size * line) + (extra ? (small.height * 1.2).round : 0)
+      # Twelve pips, one a letter: a small tile for each on the board, an
+      # empty socket for each in the pool, so the row fills as the board
+      # does and is full when the check comes. A problem letter's pip
+      # takes the problem's marks as the sweep finds it, and the reasons
+      # follow in small type. On an empty board at a computer, two keys
+      # under the pips say a word can be typed.
+      def strip(play, rect)
+        game = play.game
+        check = game.check
+        problems = check ? check.problems.keys.count { play.motion.checked?(it) } : 0
+        placed = game.board.size
+        under = if problems.positive? then reasons_line(Presentation::Copy.reasons(check), rect.width)
+                elsif game.board.empty? && play.keyboard? then :keys
+                end
+        pip = @pen.px(12)
+        gap = @pen.px(5)
+        below = @pen.px(22)
+        total = pip + (under ? @pen.px(10) + below : 0)
         top = rect.y + ((rect.height - total) / 2)
-        lines.each_with_index do |text, i|
-          @pen.text(text, font, rect.x + ((rect.width - font.width(text)) / 2.0), top + (i * line), palette.ink)
+        count = Rules::LETTER_COUNT
+        left = (rect.center_x - (((count * pip) + ((count - 1) * gap)) / 2.0)).round
+        count.times do |i|
+          box = Presentation::Rect.new(x: left + (i * (pip + gap)), y: top, width: pip, height: pip)
+          state = if i >= placed then :empty
+                  elsif i >= placed - problems then :problem
+                  else :placed
+                  end
+          pip(box, state)
         end
-        return unless extra
+        return unless under
 
-        color = status.reasons.empty? ? palette.ink_muted : palette.problem
-        @pen.text(extra, small, rect.x + ((rect.width - small.width(extra)) / 2.0), top + (lines.size * line) + @pen.px(2), color)
+        y = top + pip + @pen.px(10)
+        under == :keys ? type_keys(rect, y, below) : centered_text(under, @pen.type.reason, rect, y, @pen.palette.problem)
+      end
+
+      def pip(box, state)
+        palette = @pen.palette
+        radius = @pen.px(3)
+        case state
+        when :placed then @pen.fill(box, palette.ink, radius:)
+        when :problem
+          @pen.outline(box, palette.problem, width: @pen.stroke(1.5), radius:)
+          @pen.line(palette.problem, @pen.stroke(1.5), box.x + 1, box.bottom - 1, box.right - 1, box.y + 1)
+        else @pen.outline(box, palette.ink_muted, width: @pen.stroke(1), radius:, alpha: 0.6)
+        end
+      end
+
+      # A–Z, then ⏎: type a word and press Return.
+      def type_keys(rect, y, height)
+        widths = [@keys.width("A–Z", height), @keys.width(:return, height)]
+        gap = @pen.px(6)
+        x = rect.center_x - ((widths.sum + gap) / 2.0)
+        x += @keys.draw("A–Z", x, y, height) + gap
+        @keys.draw(:return, x, y, height)
       end
 
       # The word being typed, as ghost tiles with a blinking caret after
-      # them, and under it the keys that place or clear it, or, if it
-      # went nowhere, why.
+      # them. A letter that can't be had is marked as a problem at once;
+      # a word whose letters can all be had is outlined in the accent,
+      # ready. Under it, the keys that act on it, or the count of places
+      # it fits while they are being chosen among. Enter with no place
+      # for it shakes it.
       def draft(play, rect)
-        palette = @pen.palette
         typing = play.typing
         letters = typing.draft.chars
+        short = typing.short
+        ready = short.empty?
+        accent = @pen.palette.target
         gap = @pen.px(4)
         room = [letters.size, 8].max
-        tile = [@pen.px(36), (rect.width - (gap * (room - 1))) / room].min
-        small = @pen.type.reason
-        note = typing.misfit ? Presentation::Copy.misfit(typing.misfit) : Presentation::Copy::DRAFT_HINT
-        total = tile + @pen.px(4) + small.height
+        tile = [@pen.px(32), (rect.width - (gap * (room - 1))) / room].min
+        keys = @pen.px(20)
+        total = tile + @pen.px(6) + keys
         top = rect.y + ((rect.height - total) / 2)
         width = (letters.size * tile) + ((letters.size - 1) * gap)
-        left = (rect.center_x - (width / 2.0)).round
+        shake = (play.motion.wobble(typing.refused_at) * @pen.px(8)).round
+        left = (rect.center_x - (width / 2.0)).round + shake
         letters.each_with_index do |letter, i|
-          @tiles.ghost(Presentation::Rect.new(x: left + (i * (tile + gap)), y: top, width: tile, height: tile), letter)
+          @tiles.ghost(Presentation::Rect.new(x: left + (i * (tile + gap)), y: top, width: tile, height: tile), letter,
+                       color: ready ? accent : nil, short: short.include?(i))
         end
-        caret(play, left + width + gap, top, tile)
-        color = typing.misfit ? palette.problem : palette.ink_muted
-        _, lines = small.wrap(note, rect.width)
-        @pen.text(lines.first.to_s, small, rect.x + ((rect.width - small.width(lines.first.to_s)) / 2.0), top + tile + @pen.px(4), color)
+        caret(play, left + width + gap, top, tile) unless typing.choosing?
+        y = top + tile + @pen.px(6)
+        if (note = Presentation::Copy.misfit(typing.misfit))
+          return centered_text(note, @pen.type.reason, rect, y, @pen.palette.problem)
+        end
+
+        typing.choosing? ? choosing_keys(typing.choice, rect, y, keys) : draft_keys(rect, y, keys, ready)
+      end
+
+      # ⏎ places the word (in the accent when it is ready), Esc clears it.
+      def draft_keys(rect, y, height, ready)
+        keys = [[:return, ready ? @pen.palette.target : nil], ["Esc", nil]]
+        row(rect, y, keys.map { |label, color| [@keys.width(label, height), ->(x) { @keys.draw(label, x, y, height, color:) }] })
+      end
+
+      # "1/3", then Tab for the next place, ⏎ to place it, Esc to go back.
+      def choosing_keys(choice, rect, y, height)
+        font = @pen.type.fonts.sans_bold(@pen.px(14))
+        count = Presentation::Copy.of(choice.index, choice.size)
+        color = @pen.palette.target
+        parts = [[font.width(count), ->(x) { @pen.text(count, font, x, y + ((height - font.height) / 2.0), color) }]]
+        parts += [["Tab", nil], [:return, color], ["Esc", nil]].map do |label, ink|
+          [@keys.width(label, height), ->(x) { @keys.draw(label, x, y, height, color: ink) }]
+        end
+        row(rect, y, parts)
+      end
+
+      # Parts of known widths side by side, centred in +rect+.
+      def row(rect, _y, parts)
+        gap = @pen.px(6)
+        x = rect.center_x - ((parts.sum(&:first) + (gap * (parts.size - 1))) / 2.0)
+        parts.each do |width, draw|
+          draw.(x.round)
+          x += width + gap
+        end
+      end
+
+      def centered_text(text, font, rect, y, color)
+        @pen.text(text, font, rect.x + ((rect.width - font.width(text)) / 2.0), y, color)
       end
 
       # A text cursor after the last letter, blinking unless motion is
@@ -90,42 +170,32 @@ module CrossEm
                   @pen.palette.ink)
       end
 
-      # One line if it fits; else a line a sentence, so a line never ends
-      # with a lone word; at most two.
-      def lines(text, font, width)
-        return [text] if font.width(text) <= width
-
-        sentences = text.split(/(?<=\.) /)
-        sentences = font.wrap(text, width)[1] if sentences.size < 2 || sentences.any? { font.width(it) > width }
-        sentences.first(2)
-      end
-
       # As many reasons as fit on one line, then how many more.
-      def reasons(reasons, font, width)
+      def reasons_line(reasons, width)
+        font = @pen.type.reason
         shown = reasons.size.downto(1).each do |count|
-          text = reasons.first(count).join("; ")
-          text += "; +#{reasons.size - count} more" if count < reasons.size
+          text = reasons.first(count).join(" · ")
+          text += " · +#{reasons.size - count}" if count < reasons.size
           break text if font.width(text) <= width
         end
-        shown.is_a?(String) ? shown : "#{reasons.first[0, 30]}…"
+        shown.is_a?(String) ? shown : "#{reasons.first[0, 24]}…"
       end
 
       def results(play, results)
         palette = @pen.palette
         game = play.game
-        status = play.status
         rect = results.heading
         heading = @pen.type.heading(rect.height)
         sub = @pen.type.subheading
         gap = @pen.px(4)
         total = heading.height + gap + sub.height
         top = rect.y + ((rect.height - total) / 2)
-        title_color = game.won? ? palette.won : palette.ink
-        @pen.text(status.text, heading, rect.x + ((rect.width - heading.width(status.text)) / 2.0), top, title_color)
-        @pen.text(status.detail, sub, rect.x + ((rect.width - sub.width(status.detail)) / 2.0),
-                  top + heading.height + gap, palette.ink_muted)
+        title = Presentation::Copy.heading(game)
+        @pen.text(title, heading, rect.x + ((rect.width - heading.width(title)) / 2.0), top,
+                  game.won? ? palette.won : palette.ink)
+        tally(game, rect, top + heading.height + gap, sub)
         if (numbers = play.stats) then stats(numbers, results.stats)
-        else note(play, results.stats)
+        else chip(play, results.stats)
         end
         countdown(play, results.countdown) if play.countdown?
         primary = play.primary
@@ -136,18 +206,36 @@ module CrossEm
         end
       end
 
-      # Where the statistics go for a game that doesn't count: what it
-      # is, so a practice result is never mistaken for the day's.
-      def note(play, rects)
+      # Under the heading: a finished tile and how many letters ended in
+      # good words, "7/12", and after a loss why the rest didn't, as many
+      # reasons as fit on the line.
+      def tally(game, rect, y, font)
+        palette = @pen.palette
+        count = Presentation::Copy.tally(game.good_letters)
+        glyph = font.height - @pen.px(4)
+        reasons = game.lost? && game.check ? Presentation::Copy.reasons(game.check) : []
+        room = rect.width - glyph - @pen.px(6) - font.width(count) - @pen.px(12)
+        why = reasons.empty? ? nil : reasons_line(reasons, room)
+        small = @pen.type.reason
+        width = glyph + @pen.px(6) + font.width(count) + (why ? @pen.px(12) + small.width(why) : 0)
+        x = (rect.center_x - (width / 2.0)).round
+        tile = Presentation::Rect.new(x:, y: (y + ((font.height - glyph) / 2.0)).round, width: glyph, height: glyph)
+        @pen.fill(tile, palette.finished_edge, radius: @pen.px(3))
+        @pen.fill(tile.with(height: glyph - @pen.px(2)), palette.finished_face, radius: @pen.px(3))
+        x = tile.right + @pen.px(6)
+        @pen.text(count, font, x, y, palette.ink)
+        return unless why
+
+        @pen.text(why, small, x + font.width(count) + @pen.px(12), y + ((font.height - small.height) / 2.0), palette.problem)
+      end
+
+      # Where the statistics go for a game that doesn't count: its chip,
+      # so a practice result is never mistaken for the day's, and for a
+      # look back, the day's date.
+      def chip(play, rects)
         rect = rects.first.with(width: rects.last.right - rects.first.x)
-        text = play.review? ? Presentation::Copy.review_note(play.game.day) : Presentation::Copy::PRACTICE_NOTE
-        font = @pen.type.reason
-        _, lines = font.wrap(text, rect.width)
-        line = (font.height * 1.15).round
-        top = rect.y + ((rect.height - (lines.size * line)) / 2)
-        lines.each_with_index do |part, i|
-          @pen.text(part, font, rect.x + ((rect.width - font.width(part)) / 2.0), top + (i * line), @pen.palette.ink_muted)
-        end
+        kind, label = play.review? ? [:review, Presentation::Copy.date(play.game.day.date)] : [:practice, Presentation::Copy::PRACTICE]
+        @chips.draw(kind, label, rect.center_x - (@chips.width(label) / 2.0), rect.center_y)
       end
 
       def stats(stats, rects)
@@ -186,8 +274,8 @@ module CrossEm
         total = label.height + clock.height
         top = rect.y + ((rect.height - total) / 2)
         left = rect.x + ((rect.width - widths.sum) / 2.0).round
-        @pen.text(Presentation::Copy::NEXT_PUZZLE, label,
-                  rect.x + ((rect.width - label.width(Presentation::Copy::NEXT_PUZZLE)) / 2.0), top, palette.ink_muted)
+        name = Presentation::Copy::NEXT_PUZZLE
+        @pen.text(name, label, rect.x + ((rect.width - label.width(name)) / 2.0), top, palette.ink_muted)
         text.chars.zip(widths).each do |char, width|
           @pen.text(char, clock, left + ((width - clock.width(char)) / 2.0), top + label.height, palette.ink)
           left += width

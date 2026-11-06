@@ -38,14 +38,18 @@ module CrossEm
 
       # A ghost of a tile: a faint face inside a dashed outline in
       # +color+, with its letter in ink. A letter typed but not yet
-      # placed, or one a typed word would place.
-      def ghost(rect, letter, color: nil, alpha: 1.0)
+      # placed, or one a typed word would place. A +short+ one, a letter
+      # that can't be had, carries a problem's marks: hatching, the
+      # problem color's outline and a folded corner.
+      def ghost(rect, letter, color: nil, alpha: 1.0, short: false)
         palette = @pen.palette
         radius = (rect.width * 0.14).round
-        @pen.fill(rect, palette.tile_face, alpha: 0.16 * alpha, radius:)
-        @pen.dashed(rect, color || palette.ink_muted, width: @pen.stroke(1.5), dash: @pen.px(5), gap: @pen.px(3),
-                                                      radius:, alpha:)
+        @pen.fill(rect, palette.tile_face, alpha: (short ? 0.3 : 0.16) * alpha, radius:)
+        hatch(rect, radius, alpha) if short
+        @pen.dashed(rect, short ? palette.problem : (color || palette.ink_muted), width: @pen.stroke(short ? 2 : 1.5),
+                                                                                 dash: @pen.px(5), gap: @pen.px(3), radius:, alpha:)
         @pen.centered(letter, @pen.type.tile(rect.height - 2), rect, palette.ink, alpha:)
+        fold(rect, alpha) if short
       end
 
       # A sunken dashed socket where a tile can sit and none does.

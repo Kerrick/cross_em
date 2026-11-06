@@ -115,8 +115,10 @@ module CrossEm
       end
 
       # A day: its number and date at the left, and at the right how the
-      # player did, in words with a glyph of its own, never by color
-      # alone.
+      # player did, as a glyph whose shape says it, never by color alone,
+      # and a count out of twelve: good letters for a finished game,
+      # letters placed for one in progress. The counts line up in a
+      # column, so the glyphs do too.
       def day(play, rect, row, focused)
         palette = @pen.palette
         pad = @pen.px(12)
@@ -128,30 +130,29 @@ module CrossEm
         today = row.number == play.archive_list.today.number
         date = Presentation::Copy.date(row.date)
         @pen.text(Presentation::Copy.number(row.day), title, rect.x + pad, top, palette.ink)
-        @pen.text(today ? "Today · #{date}" : date, small, rect.x + pad, top + title.height, palette.ink_muted)
+        @pen.text(today ? "#{Presentation::Copy::TODAY} · #{date}" : date, small, rect.x + pad, top + title.height, palette.ink_muted)
 
         record = row.record
-        word, detail = Presentation::Copy.day_status(row.status, good: row.status == :lost ? play.good_letters(record) : nil,
-                                                                 placed: record&.board&.size)
-        body = @pen.type.style(:body)
+        count = case row.status
+                when :won then Presentation::Copy.tally(Rules::LETTER_COUNT)
+                when :lost then Presentation::Copy.tally(play.good_letters(record))
+                when :playing then Presentation::Copy.tally(record.board.size)
+                end
         right = rect.right - pad
-        lines = [[word, body, palette.ink], (detail && [detail, small, palette.ink_muted])].compact
-        total = lines.sum { it[1].height }
-        y = rect.y + ((rect.height - total) / 2)
-        width = lines.map { |text, font, _| font.width(text) }.max
-        lines.each do |text, font, color|
-          @pen.text(text, font, right - font.width(text), y, color)
-          y += font.height
+        size = @pen.px(22)
+        if count
+          font = @pen.type.style(:toggle)
+          width = font.width(Presentation::Copy.tally(Rules::LETTER_COUNT))
+          @pen.text(count, font, right - font.width(count), @pen.middle_top(font, rect.center_y), palette.ink)
+          right -= width + @pen.px(10)
         end
-        size = @pen.px(20)
-        glyph(row.status, right - width - @pen.px(10) - (size / 2.0), rect.center_y, size / 2.0)
+        glyph(row.status, right - (size / 2.0), rect.center_y, size / 2.0)
         @pen.fill(rect.with(y: rect.bottom - 1, height: 1).inset(pad, 0), palette.rule)
         @pen.outline(rect.inset(@pen.px(2)), palette.ink, width: @pen.stroke(2), radius: @pen.px(8)) if focused
       end
 
       # Solved: a filled disc with a tick. Game over: a ring with a cross.
-      # In progress: a ring half filled. Not played: a faint ring with a
-      # dash.
+      # In progress: a ring half filled. Not played: a faint dashed ring.
       def glyph(status, cx, cy, r)
         palette = @pen.palette
         width = @pen.stroke(1.5)
@@ -170,8 +171,12 @@ module CrossEm
           @pen.color(palette.target)
           ::Lota::Graphics.arc(:fill, :pie, cx, cy, r - width, Math::PI / 2, Math::PI * 1.5, 24)
         else
-          @pen.circle(:line, palette.rule, cx, cy, r - (width / 2.0), width:)
-          @pen.line(palette.ink_muted, width, cx - (r * 0.35), cy, cx + (r * 0.35), cy)
+          @pen.color(palette.ink_muted, 0.6)
+          ::Lota::Graphics.line_width = width
+          10.times do |i|
+            from = i * Math::PI / 5
+            ::Lota::Graphics.arc(:line, :open, cx, cy, r - (width / 2.0), from, from + (Math::PI / 10), 4)
+          end
         end
       end
 

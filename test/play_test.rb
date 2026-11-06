@@ -137,7 +137,6 @@ class PlayTest < Minitest::Test
 
     assert_predicate play.typing, :choosing?
     assert_equal 2, play.typing.choice.size
-    assert_match(/TA fits 2 places/, play.status.text)
     play.key(:tab)
 
     assert_equal 1, play.typing.choice.index
@@ -178,6 +177,68 @@ class PlayTest < Minitest::Test
     refute_predicate play.typing, :choosing?
   end
 
+  def test_a_tap_on_a_place_shown_places_the_word_there
+    play = play(game: game(pool: "CATSDOGTAGCA"))
+    type(play, "CAT")
+    play.key(:return)
+    type(play, "TA")
+    play.key(:return)
+    other = play.typing.choice.placements[1]
+    play.update(1.0) # the camera settles on the places
+    tap_rect(play, play.view.rect_of(other.fresh_positions.first))
+
+    refute_predicate play.typing, :choosing?
+    assert_equal "A", play.game.board[at(2, 1)], "the second place, tapped"
+  end
+
+  def test_shuffle_waits_for_letters_in_the_pool
+    play = play(game: game(pool: "C...........", board: board("AT")))
+
+    assert play.enabled?(:shuffle)
+    play.game.place_letter(0, at(2, 0))
+
+    assert_predicate play.game.pool, :empty?
+    refute play.enabled?(:shuffle)
+    before = @host.sounds.size
+    play.key(:space)
+
+    assert_equal before, @host.sounds.size, "Space does nothing either"
+  end
+
+  def test_with_every_letter_down_the_pool_gives_way_and_letters_still_fly_from_their_slots
+    play = play(game: game(pool: "C...........", board: board("AT")))
+    play.game.place_letter(0, at(2, 0))
+
+    assert_empty play.layout.pool
+    refute_nil play.pool_slot(0)
+    tap_rect(play, play.view.rect_of(at(2, 0)))
+
+    assert_equal 12, play.layout.pool.size, "a letter sent back brings the pool back"
+  end
+
+  def test_the_practice_chip_goes_back_to_today
+    play = play()
+    finish_official(play)
+    play.play_again
+    tap_rect(play, play.layout.wordmark)
+
+    assert_equal :official, play.mode
+  end
+
+  def test_a_resting_mouse_names_a_header_button
+    play = play(settings: Settings.default.with(instructions_seen: true))
+    button = play.layout.help_button
+    play.hover(button.center_x, button.center_y)
+
+    assert_nil play.tooltip, "not at once"
+    play.update(1.0)
+
+    assert_equal [Copy::TIPS[:help], button], play.tooltip
+    play.hover(1, play.layout.height - 1)
+
+    assert_nil play.tooltip
+  end
+
   def test_esc_goes_back_from_choosing_to_the_draft_then_clears_it
     play = play(game: game(pool: "CATSDOGTAGCA"))
     type(play, "CAT")
@@ -199,11 +260,14 @@ class PlayTest < Minitest::Test
     type(play, "crab")
     play.key(:return)
 
-    assert_equal "CRAB needs an R and a B that aren't in the pool.", Copy.misfit(play.typing.misfit)
+    assert_equal :missing, play.typing.misfit.reason
+    assert_equal [1, 3], play.typing.short, "the R and the B are marked, before and after Enter"
     assert_equal "CRAB", play.typing.draft
+    assert_equal :problem, @host.sounds.last, "a thunk, with the draft's shake"
+    assert_in_delta play.time, play.typing.refused_at
     play.key(:backspace)
 
-    assert_nil play.typing.misfit, "editing the word clears the message"
+    assert_nil play.typing.misfit, "editing the word clears it"
     assert_equal "CRA", play.typing.draft
   end
 
@@ -499,7 +563,7 @@ class PlayTest < Minitest::Test
     refute_predicate play, :sheet?
     assert_predicate play.game, :lost?
     assert_equal saved.board, play.game.board
-    assert_equal Copy::PLAY_IT_AGAIN, play.label(:again)
+    assert_equal Copy::PLAY_AGAIN, play.label(:again)
     play.press_button(:again)
 
     assert_predicate play, :practice?
