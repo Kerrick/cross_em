@@ -78,6 +78,7 @@ module CrossEm
         @armed_at = @copied_at = @copy_failed_at = @stats = nil
         @pointers.cancel
         @typing.forget
+        recentre
       end
 
       # The window's size and safe area in pixels, its Units, and the
@@ -384,7 +385,8 @@ module CrossEm
         in [:day, _] then [target.rect, :row, archive_clip]
         in [:control, _] if FocusMap.body?(self, target)
           [target.rect, :button, sheet_layout.body]
-        in [:button, :today] | [:control, _] then [target.rect, :button, nil]
+        in [:control, _] then [target.rect.inset(0, units.px(5)), :button, nil]
+        in [:button, :today] then [target.rect, :button, nil]
         else [target.rect, target.region == :header ? :icon : :button, nil]
         end
       end
@@ -574,6 +576,7 @@ module CrossEm
           @sheet_layouts.delete(:archive)
         end
         @sheets << Sheet.open(kind)
+        recentre
         @host.sound(:button) if sound
       end
 
@@ -581,6 +584,7 @@ module CrossEm
       # it, so it does not open by itself again.
       def close_sheet
         closed = @sheets.pop or return
+        recentre
         settle(@settings.with(instructions_seen: true)) if closed.kind == :help && !@settings.instructions_seen
         @host.sound(:button)
       end
@@ -662,6 +666,15 @@ module CrossEm
         @ring.hide
         pressed = FocusMap.pointable(self).find { it.rect.contains?(pointer.x, pointer.y) }
         @ring.focus(pressed) if pressed
+      end
+
+      # Puts the stick's cursor, out of sight, on the focus, as the screen
+      # under it changes: a sheet opens or closes, another game shows.
+      def recentre
+        return unless @width
+
+        target = focused
+        @cursor.place(target.rect.center_x, target.rect.center_y) if target
       end
 
       # After the focus moved by direction or by region: the camera pans

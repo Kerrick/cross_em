@@ -98,7 +98,7 @@ module CrossEm
         @pen.clip(layout.body) do
           rows.each do |row|
             rect = layout.row_rect(row, scroll)
-            row.month? ? month(rect, row) : day(play, rect, row, sheet.focus == row.number)
+            row.month? ? month(rect, row) : day(play, rect, row)
           end
           heading, rect = layout.pinned(scroll)
           month(rect, heading) if heading
@@ -119,7 +119,7 @@ module CrossEm
       # and a count out of twelve: good letters for a finished game,
       # letters placed for one in progress. The counts line up in a
       # column, so the glyphs do too.
-      def day(play, rect, row, focused)
+      def day(play, rect, row)
         palette = @pen.palette
         pad = @pen.px(12)
         pressed = play.gesture&.target == [:sheet, :body] && play.gesture.tap? && rect.contains?(play.gesture.x, play.gesture.y)
@@ -148,7 +148,6 @@ module CrossEm
         end
         glyph(row.status, right - (size / 2.0), rect.center_y, size / 2.0)
         @pen.fill(rect.with(y: rect.bottom - 1, height: 1).inset(pad, 0), palette.rule)
-        @pen.outline(rect.inset(@pen.px(2)), palette.ink, width: @pen.stroke(2), radius: @pen.px(8)) if focused
       end
 
       # Solved: a filled disc with a tick. Game over: a ring with a cross.
